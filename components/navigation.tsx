@@ -36,7 +36,7 @@ export default function Navigation() {
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              Find Doctors
+              Trouver un Médecin
               {isActive("/find-doctors") && (
                 <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
               )}
@@ -49,7 +49,7 @@ export default function Navigation() {
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              Login
+              Connexion
               {isActive("/login") && (
                 <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
               )}
@@ -60,7 +60,7 @@ export default function Navigation() {
                 size="sm"
                 className="border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-semibold"
               >
-                Home
+                Accueil
               </Button>
             </Link>
           </div>
@@ -86,7 +86,7 @@ export default function Navigation() {
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Find Doctors
+              Trouver un Médecin
             </Link>
             <Link
               href="/login"
@@ -97,7 +97,7 @@ export default function Navigation() {
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Login
+              Connexion
             </Link>
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               <Button
@@ -105,7 +105,7 @@ export default function Navigation() {
                 size="sm"
                 className="w-full border-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300 font-semibold"
               >
-                Home
+                Accueil
               </Button>
             </Link>
           </div>

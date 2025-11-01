@@ -21,18 +21,18 @@ export default function LoginRegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
+    // Gestion de la soumission du formulaire
+    console.log("Formulaire soumis :", formData)
   }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50 flex items-center justify-center py-8 md:py-12 px-3 md:px-4">
       
-      {/* Centered Form Card */}
+      {/* Carte du Formulaire Centré */}
       <div className="max-w-md w-full">
         <Card className="p-6 md:p-8 bg-white/90 backdrop-blur-sm border-2 border-blue-100 shadow-2xl">
           
-          {/* Logo at the top of the centered form */}
+          {/* Logo en haut du formulaire centré */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
               <Stethoscope className="w-6 h-6 text-white" />
@@ -42,7 +42,7 @@ export default function LoginRegisterPage() {
             </span>
           </div>
 
-          {/* Toggle Tabs */}
+          {/* Onglets de Bascule */}
           <div className="flex gap-2 mb-6 md:mb-8 bg-blue-50 p-1 rounded-lg">
             <button
               onClick={() => setIsLogin(true)}
@@ -52,7 +52,7 @@ export default function LoginRegisterPage() {
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              Login
+              Connexion
             </button>
             <button
               onClick={() => setIsLogin(false)}
@@ -62,24 +62,24 @@ export default function LoginRegisterPage() {
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              Register
+              S'inscrire
             </button>
           </div>
 
           <div className="space-y-4 md:space-y-5">
-            {/* Login Form */}
+            {/* Formulaire de Connexion */}
             {isLogin ? (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm md:text-base font-medium text-gray-700">
-                    Email Address
+                    Adresse E-mail
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="doctor@example.com"
+                      placeholder="docteur@exemple.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -89,7 +89,7 @@ export default function LoginRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="password" className="text-sm md:text-base font-medium text-gray-700">
-                    Password
+                    Mot de Passe
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
@@ -114,10 +114,10 @@ export default function LoginRegisterPage() {
                 <div className="flex items-center justify-between text-xs md:text-sm">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-200" />
-                    <span className="text-gray-600">Remember me</span>
+                    <span className="text-gray-600">Se souvenir de moi</span>
                   </label>
                   <Link href="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
-                    Forgot password?
+                    Mot de passe oublié ?
                   </Link>
                 </div>
 
@@ -125,22 +125,22 @@ export default function LoginRegisterPage() {
                   onClick={handleSubmit}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
-                  Sign In
+                  Se Connecter
                 </Button>
               </>
             ) : (
-              /* Register Form */
+              /* Formulaire d'Inscription */
               <>
                 <div className="space-y-2">
                   <Label htmlFor="reg-name" className="text-sm md:text-base font-medium text-gray-700">
-                    Full Name
+                    Nom Complet
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <Input
                       id="reg-name"
                       type="text"
-                      placeholder="Dr. John Smith"
+                      placeholder="Dr. Jean Dupont"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -150,14 +150,14 @@ export default function LoginRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="reg-email" className="text-sm md:text-base font-medium text-gray-700">
-                    Email Address
+                    Adresse E-mail
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <Input
                       id="reg-email"
                       type="email"
-                      placeholder="doctor@example.com"
+                      placeholder="docteur@exemple.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -167,7 +167,7 @@ export default function LoginRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="reg-phone" className="text-sm md:text-base font-medium text-gray-700">
-                    Phone Number
+                    Numéro de Téléphone
                   </Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
@@ -184,14 +184,14 @@ export default function LoginRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="specialty" className="text-sm md:text-base font-medium text-gray-700">
-                    Specialty
+                    Spécialité
                   </Label>
                   <div className="relative">
                     <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <Input
                       id="specialty"
                       type="text"
-                      placeholder="Cardiology"
+                      placeholder="Cardiologie"
                       value={formData.specialty}
                       onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -201,7 +201,7 @@ export default function LoginRegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="reg-password" className="text-sm md:text-base font-medium text-gray-700">
-                    Password
+                    Mot de Passe
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
@@ -226,13 +226,13 @@ export default function LoginRegisterPage() {
                 <div className="flex items-start gap-2 text-xs md:text-sm">
                   <input type="checkbox" className="w-4 h-4 mt-0.5 rounded border-blue-300 text-blue-600 focus:ring-blue-200" />
                   <span className="text-gray-600">
-                    I agree to the{" "}
+                    J'accepte les{" "}
                     <Link href="/terms" className="text-blue-600 hover:text-blue-700 font-medium">
-                      Terms of Service
+                      Conditions d'Utilisation
                     </Link>{" "}
-                    and{" "}
+                    et la{" "}
                     <Link href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium">
-                      Privacy Policy
+                      Politique de Confidentialité
                     </Link>
                   </span>
                 </div>
@@ -241,7 +241,7 @@ export default function LoginRegisterPage() {
                   onClick={handleSubmit}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
-                  Create Account
+                  Créer un Compte
                 </Button>
               </>
             )}
