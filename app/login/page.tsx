@@ -140,7 +140,7 @@ export default function LoginRegisterPage() {
                     <Input
                       id="reg-name"
                       type="text"
-                      placeholder="Dr. Jean Dupont"
+                      placeholder="Dr. Kada"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"

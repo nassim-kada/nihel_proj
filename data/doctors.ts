@@ -10,11 +10,22 @@ export interface Doctor {
   fee: number
   phone: string
   email: string
+  password: string
   availableSlots: {
     date: string
     times: string[]
   }[]
 }
+
+const getNextDates = (days = 3) => {
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() + i+1)
+    return d.toISOString().split("T")[0]
+  })
+}
+
+const dates = getNextDates()
 
 export const DOCTORS: Doctor[] = [
   {
@@ -29,10 +40,11 @@ export const DOCTORS: Doctor[] = [
     fee: 2500,
     phone: "+213 21 123 4567",
     email: "a.bennani@heartcare.dz",
+    password: "ahmed123",
     availableSlots: [
-      { date: "2024-11-05", times: ["09:00", "10:00", "14:00", "15:30"] },
-      { date: "2024-11-06", times: ["10:00", "11:00", "15:00", "16:00"] },
-      { date: "2024-11-07", times: ["09:30", "11:00", "14:00", "16:30"] },
+      { date: dates[0], times: ["09:00", "10:00", "14:00", "15:30"] },
+      { date: dates[1], times: ["10:00", "11:00", "15:00", "16:00"] },
+      { date: dates[2], times: ["09:30", "11:00", "14:00", "16:30"] },
     ],
   },
   {
@@ -47,10 +59,11 @@ export const DOCTORS: Doctor[] = [
     fee: 1500,
     phone: "+213 41 222 5555",
     email: "f.saidane@healthplus.dz",
+    password: "fatima123",
     availableSlots: [
-      { date: "2024-11-05", times: ["08:00", "09:00", "13:00", "14:00"] },
-      { date: "2024-11-06", times: ["08:30", "09:30", "13:30", "14:30"] },
-      { date: "2024-11-07", times: ["08:00", "10:00", "13:00", "15:00"] },
+      { date: dates[0], times: ["08:00", "09:00", "13:00", "14:00"] },
+      { date: dates[1], times: ["08:30", "09:30", "13:30", "14:30"] },
+      { date: dates[2], times: ["08:00", "10:00", "13:00", "15:00"] },
     ],
   },
   {
@@ -65,10 +78,11 @@ export const DOCTORS: Doctor[] = [
     fee: 3000,
     phone: "+213 21 334 4567",
     email: "m.khadra@neuro.dz",
+    password: "mohamed123",
     availableSlots: [
-      { date: "2024-11-05", times: ["10:00", "11:30", "15:00"] },
-      { date: "2024-11-06", times: ["09:00", "11:00", "14:00", "16:00"] },
-      { date: "2024-11-07", times: ["10:30", "12:00", "15:30"] },
+      { date: dates[0], times: ["10:00", "11:30", "15:00"] },
+      { date: dates[1], times: ["09:00", "11:00", "14:00", "16:00"] },
+      { date: dates[2], times: ["10:30", "12:00", "15:30"] },
     ],
   },
   {
@@ -83,10 +97,11 @@ export const DOCTORS: Doctor[] = [
     fee: 2000,
     phone: "+213 31 555 6666",
     email: "l.osman@skincare.dz",
+    password: "leila123",
     availableSlots: [
-      { date: "2024-11-05", times: ["09:00", "10:30", "14:00", "15:30"] },
-      { date: "2024-11-06", times: ["10:00", "11:30", "15:00", "16:30"] },
-      { date: "2024-11-07", times: ["09:30", "11:00", "14:30", "16:00"] },
+      { date: dates[0], times: ["09:00", "10:30", "14:00", "15:30"] },
+      { date: dates[1], times: ["10:00", "11:30", "15:00", "16:30"] },
+      { date: dates[2], times: ["09:30", "11:00", "14:30", "16:00"] },
     ],
   },
   {
@@ -101,10 +116,11 @@ export const DOCTORS: Doctor[] = [
     fee: 2800,
     phone: "+213 25 777 8888",
     email: "h.bouazza@orthocenter.dz",
+    password: "hassan123",
     availableSlots: [
-      { date: "2024-11-05", times: ["08:30", "10:00", "13:30", "15:00"] },
-      { date: "2024-11-06", times: ["09:00", "10:30", "14:00", "15:30"] },
-      { date: "2024-11-07", times: ["08:00", "09:30", "13:00", "14:30"] },
+      { date: dates[0], times: ["08:30", "10:00", "13:30", "15:00"] },
+      { date: dates[1], times: ["09:00", "10:30", "14:00", "15:30"] },
+      { date: dates[2], times: ["08:00", "09:30", "13:00", "14:30"] },
     ],
   },
   {
@@ -119,10 +135,11 @@ export const DOCTORS: Doctor[] = [
     fee: 1800,
     phone: "+213 21 999 0000",
     email: "z.medel@kidshealth.dz",
+    password: "zahra123",
     availableSlots: [
-      { date: "2024-11-05", times: ["09:30", "11:00", "14:30", "16:00"] },
-      { date: "2024-11-06", times: ["10:00", "11:30", "15:00", "16:30"] },
-      { date: "2024-11-07", times: ["09:00", "10:30", "14:00", "15:30"] },
+      { date: dates[0], times: ["09:30", "11:00", "14:30", "16:00"] },
+      { date: dates[1], times: ["10:00", "11:30", "15:00", "16:30"] },
+      { date: dates[2], times: ["09:00", "10:30", "14:00", "15:30"] },
     ],
   },
 ]
