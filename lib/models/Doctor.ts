@@ -4,6 +4,7 @@ export interface ISlot{
     times:string[];
 }
 export interface IDoctor extends Document{
+    _id:string;
     id:string;
     name:string;
     specialty:string;
