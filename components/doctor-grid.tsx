@@ -2,9 +2,28 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Star, MapPin, Clock, Users } from "lucide-react"
-import type { Doctor } from "@/data/doctors"
+import type { IDoctorData } from "@/types/doctor" 
+import type { ISpecialityDocument } from "@/types/speciality"
 
-export default function DoctorGrid({ doctors }: { doctors: Doctor[] }) {
+// Type for doctor with populated specialty
+type DoctorWithSpecialty = Omit<IDoctorData, 'specialty'> & {
+    specialty: ISpecialityDocument | string; // Can be either populated object or ID string
+}
+
+// Utility function to safely get specialty name
+const getSpecialtyName = (specialty: ISpecialityDocument | string | any): string => {
+    // If specialty is a populated object with name property
+    if (specialty && typeof specialty === 'object' && 'name' in specialty) {
+        return specialty.name;
+    }
+    // If it's just an ID string (fallback)
+    if (typeof specialty === 'string') {
+        return 'Spécialité non définie';
+    }
+    return 'Non spécifiée';
+};
+
+export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[] }) {
   if (doctors.length === 0) {
     return (
       <div className="grid place-items-center min-h-96">
@@ -23,7 +42,7 @@ export default function DoctorGrid({ doctors }: { doctors: Doctor[] }) {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
       {doctors.map((doctor) => (
         <Card 
-          key={doctor.id} 
+          key={doctor._id?.toString() || doctor.id} 
           className="p-4 md:p-6 bg-white/80 backdrop-blur-sm border-2 border-blue-100 hover:border-blue-300 hover:shadow-xl transition-all space-y-3 md:space-y-4 group"
         >
           {/* Header with Name and Rating */}
@@ -32,7 +51,10 @@ export default function DoctorGrid({ doctors }: { doctors: Doctor[] }) {
               <h3 className="text-base md:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
                 {doctor.name}
               </h3>
-              <p className="text-sm md:text-base text-blue-600 font-semibold truncate">{doctor.specialty}</p>
+              {/* Display specialty name using the utility function */}
+              <p className="text-sm md:text-base text-blue-600 font-semibold truncate">
+                {getSpecialtyName(doctor.specialty)}
+              </p>
             </div>
             <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg shadow-md flex-shrink-0">
               <Star className="w-3 h-3 md:w-4 md:h-4 fill-white text-white" />
@@ -72,10 +94,10 @@ export default function DoctorGrid({ doctors }: { doctors: Doctor[] }) {
             <div className="space-y-0.5 md:space-y-1">
               <p className="text-xs text-gray-500 font-medium">Frais de Consultation</p>
               <p className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
-                {doctor.fee} DA
+                {doctor.fee} 
               </p>
             </div>
-            <Link href={`/booking/${doctor.id}`}>
+            <Link href={`/booking/${doctor._id?.toString() || doctor.id}`}>
               <Button 
                 className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white shadow-lg hover:shadow-xl transition-all px-4 py-4 md:px-6 md:py-5 font-semibold text-sm md:text-base"
               >

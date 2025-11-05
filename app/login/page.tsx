@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,9 +8,18 @@ import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { Stethoscope, Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react"
 
+interface Speciality {
+  _id: string
+  name: string
+}
+
 export default function LoginRegisterPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
+  const [specialities, setSpecialities] = useState<Speciality[]>([])
+  const [loading, setLoading] = useState(false)
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,10 +28,77 @@ export default function LoginRegisterPage() {
     specialty: "",
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch specialties from API
+  useEffect(() => {
+    const fetchSpecialities = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/specialities')
+        if (response.ok) {
+          const data = await response.json()
+          setSpecialities(data)
+        } else {
+          console.error("Failed to fetch specialities")
+        }
+      } catch (error) {
+        console.error("Error fetching specialities:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSpecialities()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Gestion de la soumission du formulaire
-    console.log("Formulaire soumis :", formData)
+    
+    if (isLogin) {
+      // Gestion de la connexion
+      console.log("Connexion attempt:", formData)
+      // Ici vous pouvez ajouter la logique de connexion
+    } else {
+      // Gestion de l'inscription
+      setSubmitLoading(true)
+      setMessage(null)
+      
+      try {
+        const response = await fetch('/api/doctors', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        })
+
+        const data = await response.json()
+
+        if (response.ok) {
+          setMessage({ type: 'success', text: data.message || 'Médecin enregistré avec succès!' })
+          // Réinitialiser le formulaire après succès
+          setFormData({
+            email: "",
+            password: "",
+            name: "",
+            phone: "",
+            specialty: "",
+          })
+        } else {
+          setMessage({ 
+            type: 'error', 
+            text: data.message || data.error || 'Erreur lors de l\'enregistrement' 
+          })
+        }
+      } catch (error) {
+        console.error("Registration error:", error)
+        setMessage({ 
+          type: 'error', 
+          text: 'Erreur de connexion au serveur' 
+        })
+      } finally {
+        setSubmitLoading(false)
+      }
+    }
   }
 
   return (
@@ -65,6 +141,17 @@ export default function LoginRegisterPage() {
               S'inscrire
             </button>
           </div>
+
+          {/* Message de statut */}
+          {message && (
+            <div className={`mb-4 p-3 rounded-md text-center ${
+              message.type === 'success' 
+                ? 'bg-green-100 text-green-800 border border-green-200' 
+                : 'bg-red-100 text-red-800 border border-red-200'
+            }`}>
+              {message.text}
+            </div>
+          )}
 
           <div className="space-y-4 md:space-y-5">
             {/* Formulaire de Connexion */}
@@ -123,9 +210,10 @@ export default function LoginRegisterPage() {
 
                 <Button
                   onClick={handleSubmit}
+                  disabled={submitLoading}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
-                  Se Connecter
+                  {submitLoading ? "Connexion..." : "Se Connecter"}
                 </Button>
               </>
             ) : (
@@ -188,15 +276,26 @@ export default function LoginRegisterPage() {
                   </Label>
                   <div className="relative">
                     <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
-                    <Input
+                    <select
                       id="specialty"
-                      type="text"
-                      placeholder="Cardiologie"
                       value={formData.specialty}
                       onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                      className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
-                    />
+                      className="w-full pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200 rounded-md bg-white appearance-none"
+                    >
+                      <option value="">Sélectionnez une spécialité</option>
+                      {specialities.map((speciality) => (
+                        <option key={speciality._id} value={speciality._id}>
+                          {speciality.name}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                      <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                      </svg>
+                    </div>
                   </div>
+                  {loading && <p className="text-sm text-gray-500">Chargement des spécialités...</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -239,9 +338,10 @@ export default function LoginRegisterPage() {
 
                 <Button
                   onClick={handleSubmit}
+                  disabled={submitLoading}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
-                  Créer un Compte
+                  {submitLoading ? "Enregistrement..." : "Créer un Compte"}
                 </Button>
               </>
             )}
