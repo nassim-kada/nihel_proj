@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,7 +14,17 @@ interface Speciality {
   name: string
 }
 
+interface Doctor {
+  _id: string;
+  email: string;
+  password?: string;
+  name: string;
+  phone: string;
+  specialty: string;
+}
+
 export default function LoginRegisterPage() {
+  const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [specialities, setSpecialities] = useState<Speciality[]>([])
@@ -52,16 +63,61 @@ export default function LoginRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setMessage(null)
+    setSubmitLoading(true)
     
     if (isLogin) {
-      // Gestion de la connexion
-      console.log("Connexion attempt:", formData)
-      // Ici vous pouvez ajouter la logique de connexion
-    } else {
-      // Gestion de l'inscription
-      setSubmitLoading(true)
-      setMessage(null)
+      // LOGIN LOGIC
+      console.log("Connexion attempt for:", formData.email)
       
+      try {
+        // Fetch all doctors
+        const response = await fetch('/api/doctors') 
+        if (!response.ok) {
+            setMessage({ type: 'error', text: 'Erreur de connexion au serveur de données.' })
+            setSubmitLoading(false)
+            return
+        }
+
+        const doctors: Doctor[] = await response.json()
+        
+        // Find matching doctor by email and password
+        const user = doctors.find(
+          (d) => d.email === formData.email && d.password === formData.password
+        )
+
+        if (user) {
+          // Success: Store user info and redirect
+          setMessage({ type: 'success', text: 'Connexion réussie! Redirection...' })
+          
+          // Optional: Store user info in localStorage or session
+          localStorage.setItem('doctorId', user._id)
+          localStorage.setItem('doctorName', user.name)
+          localStorage.setItem('doctorEmail', user.email)
+          
+          // Redirect to dashboard after a brief delay
+          setTimeout(() => {
+            router.push('/doctor-dashboard')
+          }, 1000)
+        } else {
+          // Failure: Display error
+          setMessage({ 
+            type: 'error', 
+            text: 'E-mail ou mot de passe incorrect.' 
+          })
+          setSubmitLoading(false)
+        }
+      } catch (error) {
+        console.error("Login error:", error)
+        setMessage({ 
+          type: 'error', 
+          text: 'Erreur de connexion au serveur.' 
+        })
+        setSubmitLoading(false)
+      }
+      
+    } else {
+      // REGISTRATION LOGIC
       try {
         const response = await fetch('/api/doctors', {
           method: 'POST',
@@ -75,14 +131,15 @@ export default function LoginRegisterPage() {
 
         if (response.ok) {
           setMessage({ type: 'success', text: data.message || 'Médecin enregistré avec succès!' })
-          // Réinitialiser le formulaire après succès
-          setFormData({
-            email: "",
-            password: "",
+          // Switch to login tab after successful registration
+          setIsLogin(true) 
+          // Clear only registration-specific fields
+          setFormData(prev => ({
+            ...prev,
             name: "",
             phone: "",
             specialty: "",
-          })
+          }))
         } else {
           setMessage({ 
             type: 'error', 
@@ -104,11 +161,9 @@ export default function LoginRegisterPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50 flex items-center justify-center py-8 md:py-12 px-3 md:px-4">
       
-      {/* Carte du Formulaire Centré */}
       <div className="max-w-md w-full">
         <Card className="p-6 md:p-8 bg-white/90 backdrop-blur-sm border-2 border-blue-100 shadow-2xl">
           
-          {/* Logo en haut du formulaire centré */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-sky-500 rounded-xl flex items-center justify-center shadow-lg">
               <Stethoscope className="w-6 h-6 text-white" />
@@ -118,10 +173,13 @@ export default function LoginRegisterPage() {
             </span>
           </div>
 
-          {/* Onglets de Bascule */}
           <div className="flex gap-2 mb-6 md:mb-8 bg-blue-50 p-1 rounded-lg">
             <button
-              onClick={() => setIsLogin(true)}
+              type="button"
+              onClick={() => {
+                setIsLogin(true)
+                setMessage(null)
+              }}
               className={`flex-1 py-2.5 md:py-3 rounded-md font-semibold text-sm md:text-base transition-all ${
                 isLogin
                   ? "bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md"
@@ -131,7 +189,11 @@ export default function LoginRegisterPage() {
               Connexion
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              type="button"
+              onClick={() => {
+                setIsLogin(false)
+                setMessage(null)
+              }}
               className={`flex-1 py-2.5 md:py-3 rounded-md font-semibold text-sm md:text-base transition-all ${
                 !isLogin
                   ? "bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md"
@@ -142,7 +204,6 @@ export default function LoginRegisterPage() {
             </button>
           </div>
 
-          {/* Message de statut */}
           {message && (
             <div className={`mb-4 p-3 rounded-md text-center ${
               message.type === 'success' 
@@ -153,8 +214,7 @@ export default function LoginRegisterPage() {
             </div>
           )}
 
-          <div className="space-y-4 md:space-y-5">
-            {/* Formulaire de Connexion */}
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
             {isLogin ? (
               <>
                 <div className="space-y-2">
@@ -167,6 +227,7 @@ export default function LoginRegisterPage() {
                       id="email"
                       type="email"
                       placeholder="docteur@exemple.com"
+                      required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -184,6 +245,7 @@ export default function LoginRegisterPage() {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
+                      required
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="pl-10 md:pl-12 pr-10 md:pr-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -203,13 +265,13 @@ export default function LoginRegisterPage() {
                     <input type="checkbox" className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-200" />
                     <span className="text-gray-600">Se souvenir de moi</span>
                   </label>
-                  <Link href="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
+                  <a href="/forgot-password" className="text-blue-600 hover:text-blue-700 font-medium">
                     Mot de passe oublié ?
-                  </Link>
+                  </a>
                 </div>
 
                 <Button
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={submitLoading}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
@@ -217,7 +279,6 @@ export default function LoginRegisterPage() {
                 </Button>
               </>
             ) : (
-              /* Formulaire d'Inscription */
               <>
                 <div className="space-y-2">
                   <Label htmlFor="reg-name" className="text-sm md:text-base font-medium text-gray-700">
@@ -229,6 +290,7 @@ export default function LoginRegisterPage() {
                       id="reg-name"
                       type="text"
                       placeholder="Dr. Kada"
+                      required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -246,6 +308,7 @@ export default function LoginRegisterPage() {
                       id="reg-email"
                       type="email"
                       placeholder="docteur@exemple.com"
+                      required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -263,6 +326,7 @@ export default function LoginRegisterPage() {
                       id="reg-phone"
                       type="tel"
                       placeholder="+213 555 123 456"
+                      required
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -278,6 +342,7 @@ export default function LoginRegisterPage() {
                     <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
                     <select
                       id="specialty"
+                      required
                       value={formData.specialty}
                       onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
                       className="w-full pl-10 md:pl-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200 rounded-md bg-white appearance-none"
@@ -308,6 +373,7 @@ export default function LoginRegisterPage() {
                       id="reg-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
+                      required
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       className="pl-10 md:pl-12 pr-10 md:pr-12 py-5 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -337,7 +403,7 @@ export default function LoginRegisterPage() {
                 </div>
 
                 <Button
-                  onClick={handleSubmit}
+                  type="submit"
                   disabled={submitLoading}
                   className="w-full bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white py-5 md:py-6 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
@@ -345,7 +411,7 @@ export default function LoginRegisterPage() {
                 </Button>
               </>
             )}
-          </div>
+          </form>
         </Card>
       </div>
     </main>

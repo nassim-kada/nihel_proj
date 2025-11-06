@@ -1,7 +1,9 @@
+// types/booking.ts
 import { Types } from 'mongoose';
 
 export interface IBooking {
-  doctorId: Types.ObjectId;
+  _id?: string;
+  doctorId: Types.ObjectId | string;
   patientName: string;
   patientPhone: string;
   appointmentDate: string;
@@ -9,4 +11,6 @@ export interface IBooking {
   patientDescription?: string;
   fee: string;
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  createdAt?: Date;
+  updatedAt?: Date;
 }

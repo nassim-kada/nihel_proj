@@ -7,7 +7,8 @@ export async function GET() {
         await dbConnect();
         
         const doctors = await DoctorModel.find({})
-            .populate('specialty', 'name') 
+            .populate('specialty', 'name')
+            .maxTimeMS(5000)
             .lean(); 
 
         return NextResponse.json(doctors, { status: 200 });
@@ -35,8 +36,28 @@ export async function POST(request: Request) {
             );
         }
 
-        // Vérifier si l'email existe déjà
-        const existingDoctor = await DoctorModel.findOne({ email });
+        // Check if email exists with timeout
+        let existingDoctor;
+        try {
+            existingDoctor = await DoctorModel.findOne({ email })
+                .maxTimeMS(5000)
+                .lean();
+        } catch (dbError: any) {
+            console.error("Database error during findOne:", dbError);
+            
+            if (dbError.name === 'MongoNetworkError' || dbError.code === 'ETIMEDOUT') {
+                return NextResponse.json(
+                    { 
+                        message: 'Erreur de connexion à la base de données. Veuillez réessayer.',
+                        error: 'Problème de connexion réseau'
+                    },
+                    { status: 503 }
+                );
+            }
+            
+            throw dbError;
+        }
+        
         if (existingDoctor) {
             return NextResponse.json(
                 { message: 'Un médecin avec cet email existe déjà' },
@@ -44,14 +65,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // Créer le nouveau médecin SANS champ 'id'
+        // Create new doctor
         const newDoctor = new DoctorModel({
             name,
             email,
             phone,
             password,
             specialty,
-            // createdAt est géré automatiquement par timestamps
         });
 
         await newDoctor.save();
@@ -62,7 +82,7 @@ export async function POST(request: Request) {
             {
                 message: 'Médecin enregistré avec succès',
                 doctor: {
-                    id: newDoctor._id, // Utilisez _id comme identifiant
+                    id: newDoctor._id,
                     name: newDoctor.name,
                     email: newDoctor.email,
                     phone: newDoctor.phone,
@@ -75,14 +95,27 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.log("Erreur d'enregistrement:", error);
         
+        // Handle duplicate key error for old 'id' field
         if (error.code === 11000) {
-            // Cette erreur ne devrait plus se produire après suppression de l'index
+            // Check if it's the old 'id' index causing the issue
+            if (error.message.includes('id_1') || error.keyPattern?.id !== undefined) {
+                return NextResponse.json(
+                    { 
+                        message: 'Erreur de configuration de la base de données',
+                        error: 'Un ancien index "id" existe. Veuillez exécuter: db.doctors.dropIndex("id_1")',
+                        details: 'Contactez l\'administrateur pour supprimer l\'ancien index'
+                    },
+                    { status: 500 }
+                );
+            }
+            
+            // Regular duplicate error (email already exists)
             return NextResponse.json(
                 { 
-                    message: 'Erreur de duplication - Contactez l\'administrateur',
-                    error: 'Problème d\'index dans la base de données'
+                    message: 'Un médecin avec cet email existe déjà',
+                    error: 'Email dupliqué'
                 },
-                { status: 500 }
+                { status: 409 }
             );
         }
         

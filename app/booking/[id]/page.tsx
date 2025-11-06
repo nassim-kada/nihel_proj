@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,10 +14,10 @@ import { IDoctorData } from "@/types/doctor"
 
 export default function BookingPage() {
   const params = useParams()
-  // Ensure doctorId is treated as a string, which is the dynamic segment name [id]
   const doctorId = params.id as string 
 
   const [doctor, setDoctor] = useState<IDoctorData | null>(null)
+  const [bookings, setBookings] = useState<any[]>([]) // Store all bookings
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,45 +27,72 @@ export default function BookingPage() {
   const [patientPhone, setPatientPhone] = useState("")
   const [patientDescription, setPatientDescription] = useState("")
 
+  // Fetch doctor data
   useEffect(() => {
     if (!doctorId) {
-        // This should not happen in a correctly structured dynamic route, but is a safe check
         setError("ID du docteur manquant.")
         setIsLoading(false)
         return
     }
 
-    const fetchDoctor = async () => {
+    const fetchData = async () => {
       try {
-        // --- START OF CORRECTION ---
-        // 1. Call the new API endpoint dedicated to fetching a single doctor by ID
-        const response = await fetch(`/api/doctors/${doctorId}`) 
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-             // Handle the specific 'not found' case from the API route
-             throw new Error(`Docteur non trouvé. (Erreur HTTP: ${response.status})`)
+        // Fetch doctor
+        const doctorResponse = await fetch(`/api/doctors/${doctorId}`)
+        if (!doctorResponse.ok) {
+          if (doctorResponse.status === 404) {
+             throw new Error(`Docteur non trouvé. (Erreur HTTP: ${doctorResponse.status})`)
           }
-          throw new Error(`Erreur HTTP: ${response.status}`)
+          throw new Error(`Erreur HTTP: ${doctorResponse.status}`)
         }
-        
-        // 2. The response body is now the single doctor object (IDoctorData)
-        const foundDoctor: IDoctorData = await response.json()
-        
+        const foundDoctor: IDoctorData = await doctorResponse.json()
         setDoctor(foundDoctor)
-        // --- END OF CORRECTION ---
+
+        // Fetch all bookings for this doctor
+        const bookingsResponse = await fetch('/api/bookings')
+        if (bookingsResponse.ok) {
+          const allBookings = await bookingsResponse.json()
+          // Filter bookings for this doctor
+          const doctorBookings = allBookings.filter((booking: any) => {
+            const bookingDoctorId = booking.doctorId?._id || booking.doctorId
+            return bookingDoctorId?.toString() === doctorId
+          })
+          setBookings(doctorBookings)
+        }
 
       } catch (err: any) {
-        // Update error message to reflect API issue
-        console.error("Error fetching doctor:", err)
-        setError(err.message || "Échec de la récupération des données du docteur.")
+        console.error("Error fetching data:", err)
+        setError(err.message || "Échec de la récupération des données.")
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchDoctor()
+    fetchData()
   }, [doctorId])
+
+  // Calculate available slots by filtering out booked times
+  const availableSlots = useMemo(() => {
+    if (!doctor) return []
+    
+    return doctor.availableSlots.map(slot => {
+      // Get all booked times for this date
+      const bookedTimes = bookings
+        .filter(booking => 
+          booking.appointmentDate === slot.date && 
+          booking.status !== 'cancelled' // Only exclude non-cancelled bookings
+        )
+        .map(booking => booking.appointmentTime)
+      
+      // Filter out booked times from available times
+      const availableTimes = slot.times.filter(time => !bookedTimes.includes(time))
+      
+      return {
+        ...slot,
+        times: availableTimes
+      }
+    }).filter(slot => slot.times.length > 0) // Remove dates with no available times
+  }, [doctor, bookings])
 
   if (isLoading) {
     return (
@@ -101,7 +128,7 @@ export default function BookingPage() {
     return 'Spécialité inconnue';
   };
 
-  const currentDateSlot = doctor.availableSlots.find((slot) => slot.date === selectedDate)
+  const currentDateSlot = availableSlots.find((slot) => slot.date === selectedDate)
 
   const handleSubmit = async () => {
     if (!patientName || !patientPhone || !selectedDate || !selectedTime || !doctor) {
@@ -110,7 +137,6 @@ export default function BookingPage() {
     }
 
     const bookingData = {
-        // Use doctor._id for the MongoDB ID when submitting the booking
         doctorId: doctor._id, 
         patientName,
         patientPhone,
@@ -129,7 +155,18 @@ export default function BookingPage() {
         })
 
         if (response.ok) {
+            const newBooking = await response.json()
+            // Add the new booking to local state to update availability immediately
+            setBookings(prev => [...prev, newBooking.data])
+            
             alert(`Réservation confirmée pour Dr. ${doctor.name} le ${selectedDate} à ${selectedTime} !`);
+            
+            // Reset form
+            setSelectedDate(null)
+            setSelectedTime(null)
+            setPatientName("")
+            setPatientPhone("")
+            setPatientDescription("")
         } else {
             const errorData = await response.json()
             alert(`Échec de la réservation. Veuillez réessayer. Détail: ${errorData.error || 'Erreur inconnue'}`)
@@ -137,6 +174,34 @@ export default function BookingPage() {
     } catch (e) {
         alert("Erreur réseau. Vérifiez votre connexion.");
     }
+  }
+
+  // Show message if no slots available
+  if (availableSlots.length === 0) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50 py-8 md:py-12 px-3 md:px-4">
+        <div className="max-w-2xl mx-auto">
+          <Link 
+            href="/find-doctors" 
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 w-fit font-semibold transition-colors group mb-6"
+          >
+            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-sm md:text-base">Retour aux Médecins</span>
+          </Link>
+          <Card className="p-8 md:p-12 text-center bg-white/80 backdrop-blur-sm border-2 border-yellow-100 shadow-lg">
+            <h3 className="text-xl md:text-2xl font-bold text-yellow-700 mb-2">Aucune Disponibilité</h3>
+            <p className="text-sm md:text-base text-gray-600 mb-4">
+              Dr. {doctor.name} n'a actuellement aucun créneau disponible. Veuillez vérifier plus tard ou choisir un autre médecin.
+            </p>
+            <Link href="/find-doctors">
+              <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-5 font-semibold shadow-lg">
+                Voir Autres Médecins
+              </Button>
+            </Link>
+          </Card>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -191,7 +256,7 @@ export default function BookingPage() {
                 <h3 className="text-base md:text-lg font-bold text-gray-900">Sélectionner la Date</h3>
               </div>
               <BookingCalendar
-                slots={doctor.availableSlots}
+                slots={availableSlots}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
               />
@@ -205,21 +270,25 @@ export default function BookingPage() {
                   </div>
                   <h3 className="text-base md:text-lg font-bold text-gray-900">Sélectionner l'Heure</h3>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                  {currentDateSlot.times.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={`p-2.5 md:p-3 rounded-lg border-2 font-semibold text-sm md:text-base transition-all ${
-                        selectedTime === time
-                          ? "border-blue-500 bg-gradient-to-r from-blue-50 to-sky-50 text-blue-600 shadow-md scale-105"
-                          : "border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:scale-105"
-                      }`}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
+                {currentDateSlot.times.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                    {currentDateSlot.times.map((time) => (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        className={`p-2.5 md:p-3 rounded-lg border-2 font-semibold text-sm md:text-base transition-all ${
+                          selectedTime === time
+                            ? "border-blue-500 bg-gradient-to-r from-blue-50 to-sky-50 text-blue-600 shadow-md scale-105"
+                            : "border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-gray-700 hover:scale-105"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Aucun créneau disponible pour cette date.</p>
+                )}
               </Card>
             )}
 
