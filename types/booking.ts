@@ -10,6 +10,8 @@ export interface IBooking {
   appointmentTime: string;
   patientDescription?: string;
   fee: string;
+  appointementType: Types.ObjectId | string;
+  fileLink?: string; 
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   createdAt?: Date;
   updatedAt?: Date;

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea" 
 import Link from "next/link"
 import BookingCalendar from "@/components/booking-calendar"
-import { ChevronLeft, Star, MapPin, Phone, User, Calendar as CalendarIcon, Clock, CheckCircle, FileText, Loader2 } from "lucide-react"
+import { ChevronLeft, Star, MapPin, Phone, User, Calendar as CalendarIcon, Clock, CheckCircle, FileText, Loader2, Upload, X } from "lucide-react"
 import { useParams } from "next/navigation"
 import { IDoctorData } from "@/types/doctor"
 
@@ -17,7 +17,7 @@ export default function BookingPage() {
   const doctorId = params.id as string 
 
   const [doctor, setDoctor] = useState<IDoctorData | null>(null)
-  const [bookings, setBookings] = useState<any[]>([]) // Store all bookings
+  const [bookings, setBookings] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,6 +26,8 @@ export default function BookingPage() {
   const [patientName, setPatientName] = useState("")
   const [patientPhone, setPatientPhone] = useState("")
   const [patientDescription, setPatientDescription] = useState("")
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
   // Fetch doctor data
   useEffect(() => {
@@ -80,7 +82,7 @@ export default function BookingPage() {
       const bookedTimes = bookings
         .filter(booking => 
           booking.appointmentDate === slot.date && 
-          booking.status !== 'cancelled' // Only exclude non-cancelled bookings
+          booking.status !== 'cancelled'
         )
         .map(booking => booking.appointmentTime)
       
@@ -91,8 +93,109 @@ export default function BookingPage() {
         ...slot,
         times: availableTimes
       }
-    }).filter(slot => slot.times.length > 0) // Remove dates with no available times
+    }).filter(slot => slot.times.length > 0)
   }, [doctor, bookings])
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type and size
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      
+      if (file.size > maxSize) {
+        alert("Le fichier est trop volumineux. La taille maximale est de 5MB.")
+        return
+      }
+      
+      setUploadedFile(file)
+    }
+  }
+
+  const removeFile = () => {
+    setUploadedFile(null)
+  }
+
+  const uploadFileToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error('Échec du téléchargement du fichier')
+    }
+
+    const data = await response.json()
+    return data.result.secure_url // Return the secure URL from Cloudinary
+  }
+
+  const handleSubmit = async () => {
+    if (!patientName || !patientPhone || !selectedDate || !selectedTime || !doctor) {
+        alert("Veuillez remplir tous les champs requis et sélectionner une date/heure.");
+        return;
+    }
+
+    setIsUploading(true)
+
+    try {
+        let fileLink = ''
+        
+        // Upload file to Cloudinary if exists
+        if (uploadedFile) {
+          try {
+            fileLink = await uploadFileToCloudinary(uploadedFile)
+          } catch (uploadError) {
+            alert("Erreur lors du téléchargement du fichier. La réservation continuera sans le document.")
+            console.error("File upload error:", uploadError)
+          }
+        }
+
+        const bookingData = {
+            doctorId: doctor._id, 
+            patientName,
+            patientPhone,
+            appointmentDate: selectedDate,
+            appointmentTime: selectedTime,
+            patientDescription: patientDescription,
+            fee: doctor.fee,
+            fileLink: fileLink, // Add the file link to booking data
+            status: 'pending',
+        }
+        
+        const response = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookingData),
+        })
+
+        if (response.ok) {
+            const newBooking = await response.json()
+            // Add the new booking to local state to update availability immediately
+            setBookings(prev => [...prev, newBooking.data])
+            
+            alert(`Réservation confirmée pour Dr. ${doctor.name} le ${selectedDate} à ${selectedTime} !`);
+            
+            // Reset form
+            setSelectedDate(null)
+            setSelectedTime(null)
+            setPatientName("")
+            setPatientPhone("")
+            setPatientDescription("")
+            setUploadedFile(null)
+        } else {
+            const errorData = await response.json()
+            alert(`Échec de la réservation. Veuillez réessayer. Détail: ${errorData.error || 'Erreur inconnue'}`)
+        }
+    } catch (e) {
+        console.error("Booking error:", e)
+        alert("Erreur réseau. Vérifiez votre connexion.");
+    } finally {
+        setIsUploading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -129,52 +232,6 @@ export default function BookingPage() {
   };
 
   const currentDateSlot = availableSlots.find((slot) => slot.date === selectedDate)
-
-  const handleSubmit = async () => {
-    if (!patientName || !patientPhone || !selectedDate || !selectedTime || !doctor) {
-        alert("Veuillez remplir tous les champs requis et sélectionner une date/heure.");
-        return;
-    }
-
-    const bookingData = {
-        doctorId: doctor._id, 
-        patientName,
-        patientPhone,
-        appointmentDate: selectedDate,
-        appointmentTime: selectedTime,
-        patientDescription: patientDescription,
-        fee: doctor.fee,
-        status: 'pending',
-    }
-
-    try {
-        const response = await fetch('/api/bookings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bookingData),
-        })
-
-        if (response.ok) {
-            const newBooking = await response.json()
-            // Add the new booking to local state to update availability immediately
-            setBookings(prev => [...prev, newBooking.data])
-            
-            alert(`Réservation confirmée pour Dr. ${doctor.name} le ${selectedDate} à ${selectedTime} !`);
-            
-            // Reset form
-            setSelectedDate(null)
-            setSelectedTime(null)
-            setPatientName("")
-            setPatientPhone("")
-            setPatientDescription("")
-        } else {
-            const errorData = await response.json()
-            alert(`Échec de la réservation. Veuillez réessayer. Détail: ${errorData.error || 'Erreur inconnue'}`)
-        }
-    } catch (e) {
-        alert("Erreur réseau. Vérifiez votre connexion.");
-    }
-  }
 
   // Show message if no slots available
   if (availableSlots.length === 0) {
@@ -351,6 +408,56 @@ export default function BookingPage() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="file" className="text-xs md:text-sm font-semibold text-gray-700 flex items-center gap-1">
+                    Documents Médicaux (PDF Uniquement - Optionnel)
+                  </Label>
+                  <div className="space-y-2">
+                    {!uploadedFile ? (
+                      <div className="relative">
+                        <input
+                          id="file"
+                          type="file"
+                          accept=".pdf"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="file"
+                          className="flex items-center justify-center gap-2 w-full p-4 md:p-5 border-2 border-dashed border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer bg-white"
+                        >
+                          <Upload className="w-5 h-5 text-blue-500" />
+                          <span className="text-sm md:text-base text-gray-600 font-medium">
+                            Cliquez pour télécharger un fichier PDF
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 md:p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                          <span className="text-sm md:text-base text-gray-700 font-medium truncate">
+                            {uploadedFile.name}
+                          </span>
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <button
+                          onClick={removeFile}
+                          className="ml-2 p-1.5 hover:bg-red-100 rounded-full transition-colors flex-shrink-0"
+                          type="button"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      Format accepté: PDF/jpeg .. (max 5MB)
+                    </p>
+                  </div>
+                </div>
               </div>
             </Card>
 
@@ -377,6 +484,12 @@ export default function BookingPage() {
                     <span className="text-gray-600 font-medium">Heure:</span>
                     <span className="font-semibold text-gray-900">{selectedTime}</span>
                   </div>
+                  {uploadedFile && (
+                    <div className="flex justify-between items-center py-2 border-b border-blue-200">
+                      <span className="text-gray-600 font-medium">Document:</span>
+                      <span className="font-semibold text-gray-900 truncate max-w-[200px]">{uploadedFile.name}</span>
+                    </div>
+                  )}
                   <div className="pt-3 md:pt-4 flex justify-between items-center">
                     <span className="text-gray-700 font-semibold text-sm md:text-base">Frais Totaux:</span>
                     <span className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
@@ -389,11 +502,20 @@ export default function BookingPage() {
 
             <Button
               onClick={handleSubmit}
-              disabled={!patientName || !patientPhone || !selectedDate || !selectedTime}
+              disabled={!patientName || !patientPhone || !selectedDate || !selectedTime || isUploading}
               className="w-full h-12 md:h-14 text-sm md:text-base font-bold bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all disabled:hover:shadow-lg"
             >
-              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-              Confirmer la Réservation
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 md:w-5 md:h-5 mr-2 animate-spin" />
+                  Téléchargement en cours...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                  Confirmer la Réservation
+                </>
+              )}
             </Button>
           </div>
         </div>

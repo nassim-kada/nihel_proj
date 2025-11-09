@@ -4,16 +4,17 @@ import { dbConnect } from "@/lib/dbConnect";
 import Booking from "@/lib/models/Booking";
 import { Types } from "mongoose";
 
-// PATCH: Update booking status
+// PATCH: Update booking status OR appointmentType
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
-        const resolvedParams = await params;
-        const bookingId = resolvedParams.id;
-
+        const { id: bookingId } = await params;
+        // const {id: bookingId}= await params;]
+        
+        
         if (!Types.ObjectId.isValid(bookingId)) {
             return NextResponse.json(
                 { error: "Format d'ID de réservation invalide." },
@@ -22,19 +23,59 @@ export async function PATCH(
         }
 
         const body = await request.json();
-        const { status } = body;
+        // FIX 1: Récupérer la valeur à partir de la clé que le client envoie ('appointementType')
+        const { status, appointementType } = body; 
 
-        // Use your model's status values: 'pending', 'confirmed', 'cancelled', 'completed'
-        if (!status || !['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
+        // Build update object dynamically
+        const updateData: any = {};
+
+        // Validate and add status if provided (Inchangé)
+        if (status !== undefined) {
+            if (!['pending', 'confirmed', 'cancelled', 'completed'].includes(status)) {
+                return NextResponse.json(
+                    { error: "Statut invalide. Doit être: pending, confirmed, cancelled ou completed." },
+                    { status: 400 }
+                );
+            }
+            updateData.status = status;
+        }
+
+        // Validate and add appointementType if provided
+        if (appointementType !== undefined) {
+            // FIX 2: Utiliser les valeurs EXACTES (chaîne) de l'énumérateur Mongoose
+            const validTypes = [
+                'Consultation', 
+                'Consultation de Controle ', // Note: avec l'espace de fin
+                'Examen', 
+                'Radiologie/Imagerie', 
+                'Urgence', 
+                'Intervention'
+            ];
+            
+            // Note: On utilise trim() pour la validation côté serveur pour plus de robustesse.
+            const typeToValidate = appointementType.trim();
+
+            if (!validTypes.map(t => t.trim()).includes(typeToValidate)) {
+                return NextResponse.json(
+                    { error: "Type de rendez-vous invalide." },
+                    { status: 400 }
+                );
+            }
+            // FIX 3: La clé de mise à jour DOIT correspondre à la clé Mongoose
+            updateData.appointementType = appointementType;
+        }
+
+        // Check if there's anything to update
+        if (Object.keys(updateData).length === 0) {
             return NextResponse.json(
-                { error: "Statut invalide. Doit être: pending, confirmed, cancelled ou completed." },
+                { error: "Aucune donnée à mettre à jour." },
                 { status: 400 }
             );
         }
 
         const updatedBooking = await Booking.findByIdAndUpdate(
             bookingId,
-            { status },
+            updateData,
             { new: true, runValidators: true }
         ).populate('doctorId', 'name specialty');
 
@@ -56,15 +97,14 @@ export async function PATCH(
     }
 }
 
-// GET: Get single booking
+// GET: Get single booking (Inchangé)
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
-        const resolvedParams = await params;
-        const bookingId = resolvedParams.id;
+        const { id: bookingId } = await params;
 
         if (!Types.ObjectId.isValid(bookingId)) {
             return NextResponse.json(

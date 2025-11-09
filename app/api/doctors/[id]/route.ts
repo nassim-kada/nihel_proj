@@ -1,11 +1,9 @@
-// app/api/doctors/[id]/route.ts (Confirmé)
+// app/api/doctors/[id]/route.ts (CORRIGÉ)
 
 import { NextResponse } from "next/server";
 import { dbConnect } from "@/lib/dbConnect";
 import DoctorModel from "@/lib/models/Doctor";
-import { CastError } from "mongoose";
 
-// --- GET Request Handler ---
 export async function GET(
     request: Request,
     { params }: { params: { id: string } }
@@ -43,7 +41,6 @@ export async function GET(
     }
 }
 
-// --- PATCH Request Handler (Pour mettre à jour les frais) ---
 export async function PATCH(
     request: Request,
     { params }: { params: { id: string } }
@@ -55,10 +52,8 @@ export async function PATCH(
 
         let body;
         try {
-            // Tente de parser le corps de la requête.
             body = await request.json(); 
         } catch (e) {
-            // Gère l'erreur 'unexpected end of data' si le corps est vide/invalide
             return NextResponse.json(
                 { error: "Le corps de la requête est vide ou n'est pas un JSON valide." },
                 { status: 400 }
@@ -72,10 +67,33 @@ export async function PATCH(
             );
         }
 
-        // Met à jour le document avec les champs fournis dans le corps ({ $set: { fee: '...' } })
+        // CORRECTION: Utiliser les bons champs selon le modèle Doctor
+        const updateData: any = {};
+        
+        // Mapper "maxPatients" du frontend vers "patients" du modèle
+        if (body.maxPatients !== undefined) {
+            updateData.patients = parseInt(body.maxPatients);
+        }
+        
+        // Mapper "location" du frontend vers "clinic" du modèle
+        if (body.location !== undefined) {
+            updateData.clinic = body.location.trim();
+        }
+        
+        // Gérer les autres champs directement
+        if (body.fee !== undefined) {
+            updateData.fee = body.fee.trim();
+        }
+        
+        if (body.experience !== undefined) {
+            updateData.experience = parseInt(body.experience);
+        }
+
+        console.log("🔄 Mise à jour du docteur:", { doctorId, updateData });
+
         const updatedDoctor = await DoctorModel.findByIdAndUpdate(
             doctorId,
-            { $set: body }, 
+            { $set: updateData }, 
             { new: true, runValidators: true } 
         ).select('-password'); 
 
@@ -86,7 +104,15 @@ export async function PATCH(
             );
         }
 
-        return NextResponse.json(updatedDoctor, { status: 200 });
+        // CORRECTION: Renvoyer les données avec les noms de champs que le frontend attend
+        const responseData = {
+            ...updatedDoctor.toObject(),
+            // Fournir à la fois les anciens et nouveaux noms pour compatibilité
+            maxPatients: updatedDoctor.patients,
+            location: updatedDoctor.clinic
+        };
+
+        return NextResponse.json(responseData, { status: 200 });
 
     } catch (error) {
         if (error instanceof Error && error.name === 'CastError') {
