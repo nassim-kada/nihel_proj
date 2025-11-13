@@ -1,19 +1,76 @@
-// page.tsx - Complete Doctor Dashboard with Profile Management
-
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, FC, ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { 
   Calendar, Clock, CheckCircle, PlusSquare, Trash2, Loader2, AlertTriangle, 
   LogOut, DollarSign, Filter, X, Stethoscope, Activity, Image as ImageIcon, 
-  AlertCircle, Scissors, User, Save, MapPin, Users, Award, FileText, ExternalLink 
+  AlertCircle, Scissors, User, Save, MapPin, Users, Award, FileText, ExternalLink,
+  BarChart3,
+  ClipboardEdit, FileSliders,
+  Pill, TestTube2, FileCheck, HeartPulse, LucideIcon
 } from "lucide-react"
+import SharedFilesView from "@/components/sharedfiles"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const Image = ImageIcon;
 
-// Reusable Button Style
-const NavButton = ({ label, icon: Icon, isActive, onClick }) => (
+interface ISpecialty {
+  _id: string;
+  name: string;
+}
+
+interface IDoctor {
+  _id: string;
+  name: string;
+  email?: string;
+  specialty?: string | ISpecialty;
+  maxPatients?: number;
+  patients?: number;
+  fee?: string;
+  experience?: number;
+  location?: string;
+  clinic?: string;
+}
+
+interface IAppointment {
+  _id: string;
+  patientName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  appointementType?: string;
+  patientPhone: string;
+  patientDescription?: string;
+  fee: string;
+  fileLink?: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  createdAt?: string;
+  doctorId: string | { _id: string };
+}
+
+interface ISlot {
+  _id: string;
+  date: string;
+  times: string[];
+}
+
+const appointmentData = [
+  { month: 'Jan', confirmes: 45, annules: 8, enAttente: 12 },
+  { month: 'Fév', confirmes: 52, annules: 6, enAttente: 15 },
+  { month: 'Mar', confirmes: 61, annules: 10, enAttente: 18 },
+  { month: 'Avr', confirmes: 48, annules: 7, enAttente: 14 },
+  { month: 'Mai', confirmes: 70, annules: 5, enAttente: 20 },
+  { month: 'Jun', confirmes: 65, annules: 9, enAttente: 16 },
+];
+
+interface NavButtonProps {
+  label: string;
+  icon: LucideIcon;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const NavButton: FC<NavButtonProps> = ({ label, icon: Icon, isActive, onClick }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center p-3 rounded-xl transition-all duration-200 text-left ${
@@ -27,14 +84,17 @@ const NavButton = ({ label, icon: Icon, isActive, onClick }) => (
   </button>
 );
 
-// Reusable Card Style
-const Card = ({ children, className = "" }) => (
+interface CardProps {
+  children: ReactNode;
+  className?: string;
+}
+
+const Card: FC<CardProps> = ({ children, className = "" }) => (
   <div className={`p-6 bg-white rounded-xl shadow-lg border border-blue-100 ${className}`}>
     {children}
   </div>
 );
 
-// Configuration des types de rendez-vous
 const APPOINTMENT_TYPES = [
   { value: 'Consultation', label: 'Consultation', icon: Stethoscope, color: 'blue', textBgClass: 'text-blue-700 bg-blue-100', activeClass: 'bg-blue-500 text-white' },
   { value: 'Consultation de Controle ', label: 'Consultation de Contrôle', icon: Activity, color: 'green', textBgClass: 'text-green-700 bg-green-100', activeClass: 'bg-green-500 text-white' },
@@ -44,7 +104,6 @@ const APPOINTMENT_TYPES = [
   { value: 'Intervention', label: 'Intervention', icon: Scissors, color: 'orange', textBgClass: 'text-orange-700 bg-orange-100', activeClass: 'bg-orange-500 text-white' },
 ];
 
-// Configuration des statuts
 const APPOINTMENT_STATUSES = [
   { value: 'all', label: 'Tous', color: 'gray', textBgClass: 'bg-gray-100 text-gray-700 hover:bg-gray-200', activeClass: 'bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md' },
   { value: 'pending', label: 'En Attente', color: 'yellow', textBgClass: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100', activeClass: 'bg-yellow-500 text-white shadow-md' },
@@ -53,7 +112,7 @@ const APPOINTMENT_STATUSES = [
   { value: 'cancelled', label: 'Annulés', color: 'red', textBgClass: 'bg-red-50 text-red-700 hover:bg-red-100', activeClass: 'bg-red-500 text-white shadow-md' },
 ];
 
-const getTypeConfig = (type) => {
+const getTypeConfig = (type: string | undefined) => {
   return APPOINTMENT_TYPES.find(t => t.value.trim() === type?.trim()) || {
     value: type,
     label: type || 'Consultation',
@@ -64,12 +123,11 @@ const getTypeConfig = (type) => {
   };
 };
 
-// --- VIEW 1: Gestion des Rendez-vous ---
-const GestionRendezVous = ({ currentDoctorId }) => {
-  const [appointments, setAppointments] = useState([]);
+const GestionRendezVous: FC<{ currentDoctorId: string }> = ({ currentDoctorId }) => {
+  const [appointments, setAppointments] = useState<IAppointment[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().substring(0, 10));
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
@@ -78,6 +136,7 @@ const GestionRendezVous = ({ currentDoctorId }) => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch('/api/bookings');
       
       if (!response.ok) {
@@ -86,14 +145,18 @@ const GestionRendezVous = ({ currentDoctorId }) => {
       
       const allBookings = await response.json();
       
-      const doctorAppointments = allBookings.filter(booking => {
-        const bookingDoctorId = booking.doctorId?._id || booking.doctorId;
+      const doctorAppointments = allBookings.filter((booking: IAppointment) => {
+        const bookingDoctorId = typeof booking.doctorId === 'object' ? booking.doctorId._id : booking.doctorId;
         return bookingDoctorId?.toString() === currentDoctorId;
       });
       
       setAppointments(doctorAppointments);
     } catch (err) {
-      setError(err.message);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unknown error occurred.");
+      }
       console.error("Error fetching appointments:", err);
     } finally {
       setLoading(false);
@@ -106,7 +169,7 @@ const GestionRendezVous = ({ currentDoctorId }) => {
     }
   }, [currentDoctorId]);
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id: string, status: string) => {
     try {
       const response = await fetch(`/api/bookings/${id}`, {
         method: 'PATCH',
@@ -122,11 +185,11 @@ const GestionRendezVous = ({ currentDoctorId }) => {
       }
     } catch (err) {
       console.error("Error updating appointment status:", err);
-      alert("Erreur lors de la mise à jour du statut du rendez-vous");
+      console.error("Erreur lors de la mise à jour du statut du rendez-vous");
     }
   };
 
-  const handleTypeChange = async (id, appointmentType) => {
+  const handleTypeChange = async (id: string, appointmentType: string) => {
     try {
       const response = await fetch(`/api/bookings/${id}`, {
         method: 'PATCH',
@@ -140,7 +203,7 @@ const GestionRendezVous = ({ currentDoctorId }) => {
       } else {
         const errorText = await response.text();
         console.error("Server error detail:", errorText);
-        alert(`Erreur lors de la mise à jour du type de rendez-vous: ${errorText}`);
+        console.error(`Erreur lors de la mise à jour du type de rendez-vous: ${errorText}`);
         throw new Error('Failed to update appointment type');
       }
     } catch (err) {
@@ -149,19 +212,18 @@ const GestionRendezVous = ({ currentDoctorId }) => {
   };
 
   const filteredAppointments = useMemo(() => {
-  return appointments
-    .filter(appt => {
-      const matchesType = selectedTypeFilter === 'all' || appt.appointementType?.trim() === selectedTypeFilter.trim();
-      const matchesStatus = selectedStatusFilter === 'all' || appt.status === selectedStatusFilter;
-      return matchesType && matchesStatus;
-    })
-    .sort((a, b) => {
-      // Sort by creation date (most recent booking first)
-      const dateA = new Date(a.createdAt || a._id);
-      const dateB = new Date(b.createdAt || b._id);
-      return dateB - dateA;
-    });
-}, [appointments, selectedTypeFilter, selectedStatusFilter]);
+    return appointments
+      .filter(appt => {
+        const matchesType = selectedTypeFilter === 'all' || appt.appointementType?.trim() === selectedTypeFilter.trim();
+        const matchesStatus = selectedStatusFilter === 'all' || appt.status === selectedStatusFilter;
+        return matchesType && matchesStatus;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || a._id);
+        const dateB = new Date(b.createdAt || b._id);
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [appointments, selectedTypeFilter, selectedStatusFilter]);
 
   const stats = useMemo(() => {
     return {
@@ -205,7 +267,6 @@ const GestionRendezVous = ({ currentDoctorId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Cards de Statistiques */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
           <div className="flex items-center justify-between">
@@ -246,9 +307,9 @@ const GestionRendezVous = ({ currentDoctorId }) => {
             <CheckCircle className="w-10 h-10 text-sky-400" />
           </div>
         </Card>
+        
       </div>
 
-      {/* Cartes de Filtres */}
       <Card className="border-blue-200">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-800 flex items-center">
@@ -336,7 +397,6 @@ const GestionRendezVous = ({ currentDoctorId }) => {
         </div>
       </Card>
 
-      {/* Liste des Rendez-vous */}
       <Card className="border-blue-200">
         <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
           <Calendar className="w-6 h-6 mr-3 text-blue-600"/>
@@ -461,7 +521,6 @@ const GestionRendezVous = ({ currentDoctorId }) => {
         </div>
       </Card>
 
-      {/* Visualisation du Planning */}
       <Card className="border-sky-200">
         <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
           <Clock className="w-6 h-6 mr-3 text-sky-600"/>
@@ -499,12 +558,11 @@ const GestionRendezVous = ({ currentDoctorId }) => {
   );
 };
 
-// --- VIEW 2: Ajouter des Slots Disponibles ---
-const AjouterSlotsDisponibles = ({ currentDoctorId }) => {
+const AjouterSlotsDisponibles: FC<{ currentDoctorId: string }> = ({ currentDoctorId }) => {
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
-  const [slots, setSlots] = useState([]);
+  const [slots, setSlots] = useState<ISlot[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -528,7 +586,7 @@ const AjouterSlotsDisponibles = ({ currentDoctorId }) => {
     }
   }, [currentDoctorId]);
 
-  const handleAddSlot = async (e) => {
+  const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (date && startTime && endTime) {
       try {
@@ -544,19 +602,21 @@ const AjouterSlotsDisponibles = ({ currentDoctorId }) => {
           setDate('');
           setStartTime('');
           setEndTime('');
-          alert("Plage horaire ajoutée avec succès!");
+          console.log("Plage horaire ajoutée avec succès!");
         } else {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to add slot');
         }
       } catch (err) {
         console.error("Error adding slot:", err);
-        alert(`Erreur lors de l'ajout: ${err.message}`);
+        if (err instanceof Error) {
+          console.error(`Erreur lors de l'ajout: ${err.message}`);
+        }
       }
     }
   };
 
-  const handleDeleteSlot = async (slotId) => {
+  const handleDeleteSlot = async (slotId: string) => {
     try {
       const response = await fetch(`/api/doctors/${currentDoctorId}/slots/${slotId}`, {
         method: 'DELETE',
@@ -564,13 +624,15 @@ const AjouterSlotsDisponibles = ({ currentDoctorId }) => {
 
       if (response.ok) {
         setSlots(prev => prev.filter(s => s._id !== slotId));
-        alert("Plage horaire supprimée!");
+        console.log("Plage horaire supprimée!");
       } else {
         throw new Error('Failed to delete slot');
       }
     } catch (err) {
       console.error("Error deleting slot:", err);
-      alert(`Erreur lors de la suppression: ${err.message}`);
+      if (err instanceof Error) {
+        console.error(`Erreur lors de la suppression: ${err.message}`);
+      }
     }
   };
 
@@ -670,8 +732,13 @@ const AjouterSlotsDisponibles = ({ currentDoctorId }) => {
   );
 };
 
-// --- VIEW 3: Gestion du Profil Médecin ---
-const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
+interface ManageProfileProps {
+  currentDoctor: IDoctor;
+  updateDoctorInfo: (updatedData: IDoctor) => void;
+  specialties: ISpecialty[];
+}
+
+const ManageProfile: FC<ManageProfileProps> = ({ currentDoctor, updateDoctorInfo, specialties }) => {
   const [profileData, setProfileData] = useState({
     maxPatients: currentDoctor.maxPatients?.toString() || currentDoctor.patients?.toString() || '',
     fee: currentDoctor.fee?.toString() || '',
@@ -679,7 +746,7 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
     location: currentDoctor.location || currentDoctor.clinic || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     setProfileData({
@@ -690,13 +757,13 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
     });
   }, [currentDoctor]);
 
-  const handleSaveProfile = async (e) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
     setIsSubmitting(true);
 
     try {
-      const updateData = {};
+      const updateData: { [key: string]: any } = {};
       if (profileData.maxPatients) updateData.maxPatients = parseInt(profileData.maxPatients);
       if (profileData.fee) updateData.fee = profileData.fee.trim();
       if (profileData.experience) updateData.experience = parseInt(profileData.experience);
@@ -718,22 +785,23 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
       }
     } catch (err) {
       console.error("Error updating profile:", err);
-      setMessage({ type: 'error', text: err.message || 'Erreur lors de la sauvegarde.' });
+      if (err instanceof Error) {
+        setMessage({ type: 'error', text: err.message || 'Erreur lors de la sauvegarde.' });
+      } else {
+        setMessage({ type: 'error', text: 'Erreur inconnue lors de la sauvegarde.' });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Fonction pour obtenir le nom de la spécialité
   const getSpecialtyName = () => {
     if (!currentDoctor.specialty) return 'Non spécifiée';
     
-    // Si specialty est un objet (populé)
     if (typeof currentDoctor.specialty === 'object' && currentDoctor.specialty !== null) {
       return currentDoctor.specialty.name || 'Non spécifiée';
     }
     
-    // Si specialty est un string (ID), chercher dans la liste des spécialités
     if (typeof currentDoctor.specialty === 'string' && specialties) {
       const foundSpecialty = specialties.find(s => s._id === currentDoctor.specialty);
       return foundSpecialty ? foundSpecialty.name : 'Non spécifiée';
@@ -744,14 +812,12 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
 
   return (
     <div className="space-y-8">
-      {/* Profile Summary Card - MAINTENANT EN HAUT */}
       <Card className="border-blue-200">
         <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <User className="w-5 h-5 mr-2 text-blue-600"/>
           Résumé du Profil
         </h3>
         
-        {/* Informations personnelles */}
         <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-200">
           <div className="flex items-center gap-3 mb-3">
             <User className="w-6 h-6 text-blue-600" />
@@ -771,7 +837,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
           </div>
         </div>
 
-        {/* Informations professionnelles */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
@@ -815,7 +880,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
         </div>
       </Card>
 
-      {/* Formulaire d'édition - MAINTENANT EN BAS */}
       <Card className="border-blue-200">
         <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
           <User className="w-6 h-6 mr-3 text-blue-600"/>
@@ -823,7 +887,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
         </h3>
         
         <form onSubmit={handleSaveProfile} className="space-y-6">
-          {/* Max Patients */}
           <div>
             <label htmlFor="max-patients" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Users className="w-5 h-5 text-blue-600" />
@@ -842,7 +905,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
             </p>
           </div>
 
-          {/* Fee */}
           <div>
             <label htmlFor="fee-input" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <DollarSign className="w-5 h-5 text-blue-600" />
@@ -861,7 +923,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
             </p>
           </div>
 
-          {/* Experience */}
           <div>
             <label htmlFor="experience-input" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <Award className="w-5 h-5 text-blue-600" />
@@ -880,7 +941,6 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
             </p>
           </div>
 
-          {/* Location */}
           <div>
             <label htmlFor="location-input" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <MapPin className="w-5 h-5 text-blue-600" />
@@ -926,29 +986,212 @@ const ManageProfile = ({ currentDoctor, updateDoctorInfo, specialties }) => {
     </div>
   );
 };
+const StatistiquesView = () => {
+  return (
+    <div className="space-y-6">
+      <Card className="border-blue-200">
+        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+          <BarChart3 className="w-6 h-6 mr-3 text-blue-600"/>
+          Statistiques 
+        </h3>
+        <p className="text-gray-600 mb-6">
+          Aperçu de votre activité. (Ces données sont des exemples statiques)
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+            <p className="text-sm text-gray-600 font-medium">Patients (30j)</p>
+            <p className="text-3xl font-bold text-green-600">142</p>
+          </Card>
+          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100">
+            <p className="text-sm text-gray-600 font-medium">Taux de Complétion</p>
+            <p className="text-3xl font-bold text-blue-600">92%</p>
+          </Card>
+          <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100">
+            <p className="text-sm text-gray-600 font-medium">Revenus (Simulés)</p>
+            <p className="text-3xl font-bold text-purple-600">426,000 DZD</p>
+          </Card>
+        </div>
+        
+        <Card className="border-gray-200">
+            <h4 className="text-lg font-semibold text-gray-700 mb-4">
+    Activité des Rendez-vous (Graphique)
+  </h4>
+  
+  <div className="h-80">
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={appointmentData}
+        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis 
+          dataKey="month" 
+          tick={{ fill: '#4b5563', fontSize: 12 }}
+        />
+        <YAxis 
+          tick={{ fill: '#4b5563', fontSize: 12 }}
+        />
+        <Tooltip 
+          contentStyle={{ 
+            backgroundColor: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px'
+          }}
+        />
+        <Legend 
+          wrapperStyle={{ paddingTop: '20px' }}
+          iconType="rect"
+        />
+        <Bar 
+          dataKey="confirmes" 
+          fill="#3b82f6" 
+          name="Confirmés"
+          radius={[4, 4, 0, 0]}
+        />
+        <Bar 
+          dataKey="annules" 
+          fill="#ef4444" 
+          name="Annulés"
+          radius={[4, 4, 0, 0]}
+        />
+        <Bar 
+          dataKey="enAttente" 
+          fill="#f59e0b" 
+          name="En Attente"
+          radius={[4, 4, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+  
+  <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-200">
+    <div className="text-center">
+      <p className="text-2xl font-bold text-blue-600">341</p>
+      <p className="text-sm text-gray-600">Total Confirmés</p>
+    </div>
+    <div className="text-center">
+      <p className="text-2xl font-bold text-red-600">45</p>
+      <p className="text-sm text-gray-600">Total Annulés</p>
+    </div>
+    <div className="text-center">
+      <p className="text-2xl font-bold text-amber-600">95</p>
+      <p className="text-sm text-gray-600">Total En Attente</p>
+    </div>
+  </div>
+        </Card>
+      </Card>
+    </div>
+  );
+};
 
-// --- MAIN DOCTOR DASHBOARD COMPONENT ---
+const OrdonnanceView = () => {
+  const [activeType, setActiveType] = useState('traitement');
+
+  const prescriptionTypes = [
+    { id: 'traitement', label: 'Traitement', icon: Pill, data: ['Paracétamol 1g', 'Amoxicilline 500mg', 'Vitamine C', 'Sirop TouxSèche', 'Ibuprofène 400mg'] },
+    { id: 'analyses', label: 'Analyses', icon: TestTube2, data: ['NFS (Numération Formule Sanguine)', 'Glycémie à jeun', 'Bilan lipidique', 'CRP', 'Bilan hépatique'] },
+    { id: 'tests', label: 'Tests', icon: FileCheck, data: ['Test Allergique Cutané', 'Test PCR COVID-19', 'Test de grossesse', 'Test rapide antigénique'] },
+    { id: 'examens', label: 'Examens', icon: HeartPulse, data: ['Radiographie Thoracique', 'ECG (Électrocardiogramme)', 'Échographie abdominale', 'IRM Cérébrale', 'Scanner Thoracique'] }
+  ];
+
+  const currentType = prescriptionTypes.find(t => t.id === activeType);
+  if (!currentType) return null;
+  
+  const TypeIcon = currentType.icon;
+
+  const handlePrint = () => {
+    console.log("Clic sur Imprimer - UI seulement");
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-blue-200">
+        <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+          <ClipboardEdit className="w-6 h-6 mr-3 text-blue-600"/>
+          Générer une Ordonnance 
+        </h3>
+        
+        <div className="flex flex-wrap gap-2 border-b-2 border-gray-200 pb-3 mb-4">
+          {prescriptionTypes.map(type => {
+            const Icon = type.icon;
+            const isActive = activeType === type.id;
+            return (
+              <button
+                key={type.id}
+                onClick={() => setActiveType(type.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-all ${
+                  isActive 
+                    ? 'bg-blue-600 text-white shadow-md' 
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {type.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <TypeIcon className="w-5 h-5 mr-2 text-blue-600" />
+            Sélectionner pour: {currentType.label}
+          </h4>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+            {currentType.data.map(item => (
+              <label key={item} className="flex items-center p-3 bg-white rounded-lg border border-gray-300 hover:bg-blue-50 cursor-pointer transition-all">
+                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-400 focus:ring-blue-500" />
+                <span className="ml-3 text-sm text-gray-700">{item}</span>
+              </label>
+            ))}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ajouter une note ou un autre élément :
+            </label>
+            <textarea 
+              rows={3} 
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+              placeholder={`Instructions supplémentaires pour ${currentType.label}...`}
+            ></textarea>
+          </div>
+        </div>
+
+        <div className="mt-6 text-right">
+          <button
+            onClick={handlePrint}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-sky-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-sky-700 transition-all shadow-md flex items-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            Imprimer l'Ordonnance
+          </button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 export default function DoctorDashboard() {
   const router = useRouter();
   const [mainView, setMainView] = useState("appointments");
-  const [currentDoctor, setCurrentDoctor] = useState(null);
-  const [specialties, setSpecialties] = useState([]);
+  const [currentDoctor, setCurrentDoctor] = useState<IDoctor | null>(null);
+  const [specialties, setSpecialties] = useState<ISpecialty[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const updateDoctorInfo = (updatedData) => {
-    setCurrentDoctor(prev => ({ ...prev, ...updatedData }));
+  const updateDoctorInfo = (updatedData: IDoctor) => {
+    setCurrentDoctor(prev => (prev ? { ...prev, ...updatedData } : updatedData));
   };
 
-  // Fonction pour obtenir le nom de la spécialité
   const getSpecialtyName = () => {
     if (!currentDoctor || !currentDoctor.specialty) return 'Non spécifiée';
     
-    // Si specialty est un objet (populé)
     if (typeof currentDoctor.specialty === 'object' && currentDoctor.specialty !== null) {
       return currentDoctor.specialty.name || 'Non spécifiée';
     }
     
-    // Si specialty est un string (ID), chercher dans la liste des spécialités
     if (typeof currentDoctor.specialty === 'string' && specialties.length > 0) {
       const foundSpecialty = specialties.find(s => s._id === currentDoctor.specialty);
       return foundSpecialty ? foundSpecialty.name : 'Non spécifiée';
@@ -977,12 +1220,8 @@ export default function DoctorDashboard() {
           setCurrentDoctor({
             _id: doctorId,
             name: doctorName,
-            email: doctorEmail,
+            email: doctorEmail || undefined,
             specialty: 'Chargement...',
-            fee: 'N/A',
-            maxPatients: 0,
-            experience: 0,
-            location: ''
           });
         }
       } catch (error) {
@@ -990,12 +1229,8 @@ export default function DoctorDashboard() {
         setCurrentDoctor({
           _id: doctorId,
           name: doctorName,
-          email: doctorEmail,
+          email: doctorEmail || undefined,
           specialty: 'Information non disponible',
-          fee: 'N/A',
-          maxPatients: 0,
-          experience: 0,
-          location: ''
         });
       } finally {
         setLoading(false);
@@ -1036,6 +1271,12 @@ export default function DoctorDashboard() {
         return <AjouterSlotsDisponibles currentDoctorId={currentDoctor._id} />;
       case "manage_profile":
         return <ManageProfile currentDoctor={currentDoctor} updateDoctorInfo={updateDoctorInfo} specialties={specialties} />;
+      case "statistics":
+        return <StatistiquesView />;
+      case "prescription":
+        return <OrdonnanceView />;
+      case "sharedfiles":
+        return <SharedFilesView currentDoctorId={currentDoctor._id} />;
       default:
         return (
           <div className="p-10 text-center text-gray-500 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -1076,12 +1317,13 @@ export default function DoctorDashboard() {
                       💰 Frais: {currentDoctor.fee}
                     </span>
                   )}
-                  {(currentDoctor.maxPatients > 0 || currentDoctor.patients > 0) && (
+                  {/* CORRECTED LINE: Added ?? 0 for safe comparison */}
+                  {(currentDoctor.maxPatients || currentDoctor.patients) && ((currentDoctor.maxPatients ?? 0) > 0 || (currentDoctor.patients ?? 0) > 0) && (
                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold text-sm">
                       👥 Max: {currentDoctor.maxPatients || currentDoctor.patients} patients/jour
                     </span>
                   )}
-                  {currentDoctor.experience > 0 && (
+                  {currentDoctor.experience && currentDoctor.experience > 0 && (
                     <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full font-semibold text-sm">
                       🏆 {currentDoctor.experience} ans d'expérience
                     </span>
@@ -1124,6 +1366,26 @@ export default function DoctorDashboard() {
               icon={PlusSquare} 
               isActive={mainView === 'add_slots'} 
               onClick={() => setMainView('add_slots')} 
+            />
+<NavButton 
+  label="Partage de Fichiers" 
+  icon={FileSliders} 
+  isActive={mainView === 'sharedfiles'}  
+  onClick={() => setMainView('sharedfiles')}  
+/>
+            
+            <NavButton 
+              label="Statistiques" 
+              icon={BarChart3} 
+              isActive={mainView === 'statistics'} 
+              onClick={() => setMainView('statistics')} 
+            />
+            
+            <NavButton 
+              label="Ordonnances" 
+              icon={ClipboardEdit} 
+              isActive={mainView === 'prescription'} 
+              onClick={() => setMainView('prescription')} 
             />
             
           </div>

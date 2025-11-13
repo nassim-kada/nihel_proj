@@ -36,7 +36,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if email exists with timeout
         let existingDoctor;
         try {
             existingDoctor = await DoctorModel.findOne({ email })
@@ -95,9 +94,9 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.log("Erreur d'enregistrement:", error);
         
-        // Handle duplicate key error for old 'id' field
+        
         if (error.code === 11000) {
-            // Check if it's the old 'id' index causing the issue
+     
             if (error.message.includes('id_1') || error.keyPattern?.id !== undefined) {
                 return NextResponse.json(
                     { 

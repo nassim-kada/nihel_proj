@@ -42,7 +42,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
       {doctors.map((doctor) => (
         <Card 
-          key={doctor._id?.toString() || doctor.id} 
+          key={doctor._id?.toString()} 
           className="p-4 md:p-6 bg-white/80 backdrop-blur-sm border-2 border-blue-100 hover:border-blue-300 hover:shadow-xl transition-all space-y-3 md:space-y-4 group"
         >
           {/* Header with Name and Rating */}
@@ -97,7 +97,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
                 {doctor.fee} 
               </p>
             </div>
-            <Link href={`/booking/${doctor._id?.toString() || doctor.id}`}>
+            <Link href={`/booking/${doctor._id?.toString()}`}>
               <Button 
                 className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white shadow-lg hover:shadow-xl transition-all px-4 py-4 md:px-6 md:py-5 font-semibold text-sm md:text-base"
               >

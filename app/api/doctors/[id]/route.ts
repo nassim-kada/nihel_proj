@@ -1,16 +1,17 @@
-// app/api/doctors/[id]/route.ts (CORRIGÉ)
 
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { dbConnect } from "@/lib/dbConnect";
 import DoctorModel from "@/lib/models/Doctor";
 
 export async function GET(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    // 1. Indiquer que 'params' est une Promesse
+    { params }: { params: Promise<{ id: string }> } 
 ) {
     try {
         await dbConnect(); 
         
+        // 2. Utiliser 'await' pour résoudre la promesse
         const { id: doctorId } = await params;
         
         const doctor = await DoctorModel.findById(doctorId).lean();
@@ -25,6 +26,7 @@ export async function GET(
         return NextResponse.json(doctor, { status: 200 });
 
     } catch (error) {
+        // ... (votre gestion d'erreur est correcte) ...
         if (error instanceof Error && error.name === 'CastError') {
             console.error("Invalid Doctor ID format:", error);
             return NextResponse.json(
@@ -42,12 +44,14 @@ export async function GET(
 }
 
 export async function PATCH(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    // 3. Indiquer que 'params' est une Promesse (aussi pour PATCH)
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect(); 
         
+        // 4. Utiliser 'await' (aussi pour PATCH)
         const { id: doctorId } = await params;
 
         let body;
@@ -59,7 +63,8 @@ export async function PATCH(
                 { status: 400 }
             );
         }
-
+        
+        // ... (le reste de votre logique est correcte) ...
         if (Object.keys(body).length === 0) {
             return NextResponse.json(
                 { error: "Aucun champ fourni pour la mise à jour." },
@@ -67,24 +72,17 @@ export async function PATCH(
             );
         }
 
-        // CORRECTION: Utiliser les bons champs selon le modèle Doctor
         const updateData: any = {};
         
-        // Mapper "maxPatients" du frontend vers "patients" du modèle
         if (body.maxPatients !== undefined) {
             updateData.patients = parseInt(body.maxPatients);
         }
-        
-        // Mapper "location" du frontend vers "clinic" du modèle
         if (body.location !== undefined) {
             updateData.clinic = body.location.trim();
         }
-        
-        // Gérer les autres champs directement
         if (body.fee !== undefined) {
             updateData.fee = body.fee.trim();
         }
-        
         if (body.experience !== undefined) {
             updateData.experience = parseInt(body.experience);
         }
@@ -104,10 +102,8 @@ export async function PATCH(
             );
         }
 
-        // CORRECTION: Renvoyer les données avec les noms de champs que le frontend attend
         const responseData = {
             ...updatedDoctor.toObject(),
-            // Fournir à la fois les anciens et nouveaux noms pour compatibilité
             maxPatients: updatedDoctor.patients,
             location: updatedDoctor.clinic
         };
@@ -115,6 +111,7 @@ export async function PATCH(
         return NextResponse.json(responseData, { status: 200 });
 
     } catch (error) {
+        // ... (votre gestion d'erreur est correcte) ...
         if (error instanceof Error && error.name === 'CastError') {
             console.error("Invalid Doctor ID or update value format:", error);
             return NextResponse.json(

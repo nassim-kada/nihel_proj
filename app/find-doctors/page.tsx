@@ -5,38 +5,68 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Filter, X, Loader2 } from "lucide-react"
 import DoctorGrid from "@/components/doctor-grid"
-import { IDoctorData } from "@/types/doctor" 
+import { IDoctorData } from "@/types/doctor"
+// Assuming DoctorWithSpecialty might be defined here, but we can infer it
+// import { DoctorWithSpecialty } from "@/types/doctor" 
 import { ISpecialityDocument } from "@/types/speciality"
 
-// Helper function to safely get specialty ID
-const getSpecialtyId = (specialty: ISpecialityDocument | string | any): string | null => {
-  if (specialty && typeof specialty === 'object' && '_id' in specialty) {
-    return specialty._id.toString();
+/**
+ * Helper function to safely get a specialty ID from a reference.
+ * The reference can be a string, a populated document (object with _id),
+ * or an unpopulated ObjectId.
+ */
+const getSpecialtyId = (specialty: any): string | null => {
+  if (!specialty) return null;
+
+  // Case 1: It's a populated document (ISpecialityDocument)
+  if (typeof specialty === 'object' && specialty !== null && '_id' in specialty) {
+    if (specialty._id === undefined || specialty._id === null) return null;
+    return String(specialty._id);
   }
+
+  // Case 2: It's already a string ID
   if (typeof specialty === 'string') {
     return specialty;
   }
+  
+  // Case 3: It's an ObjectId or other object that can be stringified
+  if (typeof specialty === 'object' && specialty !== null && typeof specialty.toString === 'function') {
+    const idString = specialty.toString();
+    // Avoid returning "[object Object]"
+    if (idString !== '[object Object]' && !idString.includes(' ')) {
+      return idString;
+    }
+  }
+
+  // Fallback if it's an unrecognized format
   return null;
 };
 
-// Helper function to safely get specialty name
-const getSpecialtyName = (specialty: ISpecialityDocument | string | any): string => {
-  if (specialty && typeof specialty === 'object' && 'name' in specialty) {
+/**
+ * Helper function to safely get a specialty name from a reference.
+ * The name only exists on a populated document.
+ */
+const getSpecialtyName = (specialty: any): string => {
+  // Only a populated document (ISpecialityDocument) will have a 'name'
+  if (specialty && typeof specialty === 'object' && 'name' in specialty && typeof specialty.name === 'string') {
     return specialty.name.toLowerCase();
   }
+  
+  // All other cases (string ID, ObjectId, null, undefined) mean we don't have a name.
   return '';
 };
+
 
 export default function FindDoctorsPage() {
   const [doctors, setDoctors] = useState<IDoctorData[]>([])
   const [availableSpecialities, setAvailableSpecialities] = useState<ISpecialityDocument[]>([])
   
   const [isLoading, setIsLoading] = useState(true)
-  const [isSpecialitiesLoading, setIsSpecialitiesLoading] = useState(true) 
+  const [isSpecialitiesLoading, setIsSpecialitiesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string | null>(null) 
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
 
   // Fetch doctors with populated specialty
@@ -45,9 +75,9 @@ export default function FindDoctorsPage() {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await fetch('/api/doctors') 
+        const response = await fetch('/api/doctors')
         if (!response.ok) throw new Error("Échec de la récupération des docteurs.")
-        const data: IDoctorData[] = await response.json() 
+        const data: IDoctorData[] = await response.json()
         setDoctors(data)
       } catch (err: any) {
         setError("Impossible de charger les docteurs.")
@@ -63,7 +93,7 @@ export default function FindDoctorsPage() {
     const fetchSpecialities = async () => {
       setIsSpecialitiesLoading(true)
       try {
-        const response = await fetch('/api/specialities') 
+        const response = await fetch('/api/specialities')
         if (!response.ok) throw new Error("Échec de la récupération des spécialités.")
         const data: ISpecialityDocument[] = await response.json()
         setAvailableSpecialities(data)
@@ -82,21 +112,49 @@ export default function FindDoctorsPage() {
 
     return doctors.filter((doctor) => {
       // Search logic - search by name, specialty name, or clinic
-      const specialtyName = getSpecialtyName(doctor.specialty);
+      const specialtyName = getSpecialtyName(doctor.specialty); // This line is now safe
       
       const matchesSearch =
         doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        specialtyName.includes(searchTerm.toLowerCase()) || 
-        doctor.clinic.toLowerCase().includes(searchTerm.toLowerCase())
+        specialtyName.includes(searchTerm.toLowerCase()) ||
+        (doctor.clinic?.toLowerCase() || '').includes(searchTerm.toLowerCase())
 
       // Filter by specialty ID
-      const doctorSpecialtyId = getSpecialtyId(doctor.specialty);
+      const doctorSpecialtyId = getSpecialtyId(doctor.specialty); // This line is also safe
       const matchesSpecialty = !selectedSpecialtyId || doctorSpecialtyId === selectedSpecialtyId;
       
       return matchesSearch && matchesSpecialty
     })
   }, [doctors, searchTerm, selectedSpecialtyId])
   
+  // Transformation logic to prepare data for DoctorGrid
+  const gridDoctors = useMemo(() => {
+    return filteredDoctors
+      .map(doctor => {
+        const specialty = doctor.specialty;
+        
+        // Case 1: It's a populated ISpecialityDocument. This is valid for DoctorGrid.
+        if (specialty && typeof specialty === 'object' && '_id' in specialty) {
+          return doctor; // Return as is
+        }
+        
+        // Case 2: It's not populated (ObjectId, string, null).
+        // Convert it to a string ID.
+        const specialtyId = getSpecialtyId(specialty); // This returns `string | null`
+        
+        return {
+          ...doctor,
+          specialty: specialtyId // `specialty` is now `string | null`
+        };
+      })
+      // Now, filter out any doctor where specialty is null, because
+      // the DoctorGrid type `string | ISpecialityDocument` does not allow null.
+      .filter(doctor => doctor.specialty !== null);
+      
+    // The resulting type is now compatible with DoctorWithSpecialty[]
+  }, [filteredDoctors]);
+
+
   const activeFiltersCount = selectedSpecialtyId ? 1 : 0
   const isOverallLoading = isLoading || isSpecialitiesLoading;
 
@@ -143,8 +201,8 @@ export default function FindDoctorsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
           {/* Filters Sidebar */}
           <div className={`lg:col-span-1 space-y-4 md:space-y-6 ${
-            showFilters 
-              ? 'fixed inset-0 z-50 bg-white overflow-y-auto p-4 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0' 
+            showFilters
+              ? 'fixed inset-0 z-50 bg-white overflow-y-auto p-4 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:p-0'
               : 'hidden lg:block'
           }`}>
             {/* Mobile Filter Header */}
@@ -184,22 +242,30 @@ export default function FindDoctorsPage() {
                     <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
                   </div>
                 ) : (
-                  availableSpecialities.map((speciality) => (
-                    <button
-                      key={speciality._id.toString()} 
-                      onClick={() => {
-                        setSelectedSpecialtyId(speciality._id.toString())
-                        setShowFilters(false)
-                      }}
-                      className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-xs md:text-sm font-medium ${
-                        selectedSpecialtyId === speciality._id.toString()
-                          ? "bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md"
-                          : "bg-blue-50 text-gray-700 hover:bg-blue-100"
-                      }`}
-                    >
-                      {speciality.name}
-                    </button>
-                  ))
+                  availableSpecialities.map((speciality) => {
+                    // Handle cases where speciality or _id might be missing
+                    // *** FIX: Corrected typo 'specialdity' to 'speciality' ***
+                    if (!speciality || !speciality._id) return null;
+                    
+                    const id = speciality._id.toString();
+                    
+                    return (
+                      <button
+                        key={id}
+                        onClick={() => {
+                          setSelectedSpecialtyId(id)
+                          setShowFilters(false)
+                        }}
+                        className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-xs md:text-sm font-medium ${
+                          selectedSpecialtyId === id
+                            ? "bg-gradient-to-r from-blue-500 to-sky-500 text-white shadow-md"
+                            : "bg-blue-50 text-gray-700 hover:bg-blue-100"
+                        }`}
+                      >
+                        {speciality.name}
+                      </button>
+                    )
+                  })
                 )}
               </div>
             </Card>
@@ -231,11 +297,13 @@ export default function FindDoctorsPage() {
               </Card>
             )}
 
-            {!isOverallLoading && !error && filteredDoctors.length > 0 && (
-              <DoctorGrid doctors={filteredDoctors} />
+            {/* *** FIX: Use `gridDoctors` which is now correctly typed for DoctorGrid *** */}
+            {!isOverallLoading && !error && gridDoctors.length > 0 && (
+              <DoctorGrid doctors={gridDoctors as any} /> 
             )}
 
-            {!isOverallLoading && !error && filteredDoctors.length === 0 && (
+            {/* *** FIX: Check `gridDoctors.length` for consistency *** */}
+            {!isOverallLoading && !error && gridDoctors.length === 0 && (
               <Card className="p-8 md:p-12 text-center bg-white/80 backdrop-blur-sm border-2 border-blue-100">
                 <div className="space-y-3 md:space-y-4">
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">

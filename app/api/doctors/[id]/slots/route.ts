@@ -1,14 +1,11 @@
-// app/api/doctors/[id]/slots/route.ts (Code Complet)
-
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { dbConnect } from "@/lib/dbConnect";
 import DoctorModel from "@/lib/models/Doctor";
 import { Types } from "mongoose";
 
-// GET: Get all available slots for a doctor
 export async function GET(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
@@ -30,7 +27,6 @@ export async function GET(
             );
         }
 
-        // doctor.availableSlots inclura désormais les _id générés
         return NextResponse.json(doctor.availableSlots, { status: 200 });
 
     } catch (error) {
@@ -43,8 +39,8 @@ export async function GET(
 }
 
 export async function POST(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
@@ -77,7 +73,7 @@ export async function POST(
         const updatedDoctor = await DoctorModel.findByIdAndUpdate(
             doctorId,
             { $push: { availableSlots: newSlot } },
-            { new: true } // Important: retourne la version mise à jour
+            { new: true }
         );
 
         if (!updatedDoctor) {
@@ -87,14 +83,10 @@ export async function POST(
             );
         }
 
-        // 3. Trouver le slot nouvellement ajouté (qui a maintenant son _id)
         const addedSlot = updatedDoctor.availableSlots.find(
-            // Le dernier élément du tableau est le nouveau slot
             slot => slot.date === newSlot.date && slot.times[0] === newSlot.times[0]
         );
         
-        // Si la recherche est fiable, utilisez simplement le dernier élément si possible.
-        // Sinon, on retourne le slot trouvé.
         return NextResponse.json(addedSlot, { status: 201 });
 
     } catch (error) {
@@ -106,7 +98,6 @@ export async function POST(
     }
 }
 
-// Helper function to generate time slots between start and end time
 function generateTimeSlots(startTime: string, endTime: string): string[] {
     const slots: string[] = [];
     let currentTime = startTime;
@@ -114,7 +105,6 @@ function generateTimeSlots(startTime: string, endTime: string): string[] {
     while (currentTime < endTime) {
         slots.push(currentTime);
         
-        // Add 30 minutes to current time
         const [hours, minutes] = currentTime.split(':').map(Number);
         let newHours = hours;
         let newMinutes = minutes + 30;
@@ -126,7 +116,6 @@ function generateTimeSlots(startTime: string, endTime: string): string[] {
         
         currentTime = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
         
-        // Stop if next slot would exceed end time
         if (currentTime >= endTime) break;
     }
     

@@ -1,20 +1,21 @@
-// app/api/doctors/[id]/slots/[slotId]/route.ts (Code Complet)
 
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { dbConnect } from "@/lib/dbConnect";
 import DoctorModel from "@/lib/models/Doctor";
 import { Types } from "mongoose";
 
-// --- DELETE Request Handler (Supprimer un slot de disponibilité par son _id) ---
+
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string, slotId: string } }
+   
+    request: NextRequest,
+    
+    { params }: { params: Promise<{ id: string, slotId: string }> }
 ) {
     try {
         await dbConnect();
 
-        const { id: doctorId } = await params;
-        const { slotId } = await params;
+        // 4. (Optimisation) Lisez les deux 'params' en un seul 'await'
+        const { id: doctorId, slotId } = await params;
 
         if (!Types.ObjectId.isValid(doctorId) || !Types.ObjectId.isValid(slotId)) {
             return NextResponse.json(
