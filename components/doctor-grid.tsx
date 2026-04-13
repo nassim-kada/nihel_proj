@@ -94,7 +94,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
             <div className="space-y-0.5 md:space-y-1">
               <p className="text-xs text-gray-500 font-medium">Frais de Consultation</p>
               <p className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
-                {doctor.fee} 
+                {doctor.fee} DA
               </p>
             </div>
             <Link href={`/booking/${doctor._id?.toString()}`}>

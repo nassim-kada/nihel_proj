@@ -14,7 +14,7 @@ export async function GET(
         // 2. Utiliser 'await' pour résoudre la promesse
         const { id: doctorId } = await params;
         
-        const doctor = await DoctorModel.findById(doctorId).lean();
+        const doctor = await DoctorModel.findById(doctorId).populate('specialty').lean();
 
         if (!doctor) {
             return NextResponse.json(
@@ -83,8 +83,15 @@ export async function PATCH(
         if (body.fee !== undefined) {
             updateData.fee = body.fee.trim();
         }
+        if (body.location !== undefined) {
+            updateData.location = body.location.trim();
+        }
         if (body.experience !== undefined) {
             updateData.experience = parseInt(body.experience);
+        }
+        if (body.mapLocation !== undefined) {
+            updateData['mapLocation.lat'] = parseFloat(body.mapLocation.lat);
+            updateData['mapLocation.lng'] = parseFloat(body.mapLocation.lng);
         }
 
         console.log("🔄 Mise à jour du docteur:", { doctorId, updateData });
@@ -105,7 +112,7 @@ export async function PATCH(
         const responseData = {
             ...updatedDoctor.toObject(),
             maxPatients: updatedDoctor.patients,
-            location: updatedDoctor.clinic
+            location: updatedDoctor.location || updatedDoctor.clinic
         };
 
         return NextResponse.json(responseData, { status: 200 });

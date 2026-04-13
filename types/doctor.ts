@@ -11,6 +11,7 @@ export interface IDoctorData {
   name: string;
   specialty: SpecialtyRef;
   clinic?: string; 
+  location?: string;
   experience?: number; 
   rating?: number; 
   patients?: number; 
@@ -18,6 +19,9 @@ export interface IDoctorData {
   fee?: string; 
   phone: string;
   email: string;
+  wilaya?: string;
+  commune?: string;
+  mapLocation?: { lat: number; lng: number };
   availableSlots: ISlot[];
   createdAt: string;
   updatedAt: string;

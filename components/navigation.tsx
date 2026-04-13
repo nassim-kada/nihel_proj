@@ -3,14 +3,22 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Stethoscope, Menu, X } from "lucide-react"
+import { Stethoscope, Menu, X, User as UserIcon, LogOut } from "lucide-react"
 import { useState } from "react"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
 
   const isActive = (path: string) => pathname === path
+  const isDashboardActive = isActive("/doctor-dashboard") || isActive("/patient-dashboard")
+
+  // Hide global nav on dashboard pages — they have their own sidebar
+  if (pathname?.startsWith("/doctor-dashboard") || pathname?.startsWith("/patient-dashboard")) {
+    return null
+  }
 
   return (
     <nav className="bg-white/80 backdrop-blur-md border-b border-blue-100 sticky top-0 z-50 shadow-sm">
@@ -41,19 +49,45 @@ export default function Navigation() {
                 <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
               )}
             </Link>
-            <Link
-              href="/login"
-              className={`text-sm font-semibold transition-all relative ${
-                isActive("/login")
-                  ? "text-blue-600"
-                  : "text-gray-600 hover:text-blue-600"
-              }`}
-            >
-              Connexion
-              {isActive("/login") && (
-                <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
-              )}
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={user.role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard"}
+                  className={`text-sm font-semibold transition-all relative flex items-center gap-1.5 ${
+                    isDashboardActive
+                      ? "text-blue-600"
+                      : "text-gray-600 hover:text-blue-600"
+                  }`}
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Mon Espace
+                  {isDashboardActive && (
+                    <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
+                  )}
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-sm font-semibold text-red-500 hover:text-red-600 transition-all flex items-center gap-1.5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Déconnexion
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className={`text-sm font-semibold transition-all relative ${
+                  isActive("/login")
+                    ? "text-blue-600"
+                    : "text-gray-600 hover:text-blue-600"
+                }`}
+              >
+                Connexion
+                {isActive("/login") && (
+                  <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
+                )}
+              </Link>
+            )}
             <Link href="/">
               <Button
                 variant="outline"
@@ -88,17 +122,44 @@ export default function Navigation() {
             >
               Trouver un Médecin
             </Link>
-            <Link
-              href="/login"
-              className={`block px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive("/login")
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
-              }`}
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Connexion
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={user.role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard"}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    isDashboardActive
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Mon Espace
+                </Link>
+                <button
+                  onClick={() => {
+                    logout()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-all w-full text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Déconnexion
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className={`block px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  isActive("/login")
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                }`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Connexion
+              </Link>
+            )}
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
               <Button
                 variant="outline"

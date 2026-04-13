@@ -5,6 +5,8 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import Navigation from "@/components/navigation"
 import Chatbot from "@/components/chatbot"
+import { AuthProvider } from "@/contexts/AuthContext"
+
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
@@ -20,11 +22,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
-        <Navigation />
-        {children}
-        <Analytics />
-        <Chatbot />
+      <body className={`font-sans antialiased`} suppressHydrationWarning>
+        <AuthProvider>
+          <Navigation />
+          {children}
+          <Analytics />
+          <Chatbot />
+        </AuthProvider>
       </body>
     </html>
   )

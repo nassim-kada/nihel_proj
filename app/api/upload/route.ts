@@ -19,22 +19,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convertir le File en buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // --- DÉBUT DE LA MODIFICATION ---
-    // Déterminer le resource_type en fonction du type de fichier
-    // Si c'est un PDF, utilisez 'raw'. Sinon, laissez 'auto' gérer les images/vidéos.
+    
     const resource_type = file.type === 'application/pdf' ? 'raw' : 'auto';
-    // --- FIN DE LA MODIFICATION ---
 
-    // Upload vers Cloudinary en utilisant upload_stream
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           folder: 'doctor-app', 
-          resource_type: resource_type, // <-- Utiliser la variable
+          resource_type: resource_type, 
           access_mode: 'public' 
         },
         (error: any, result: any) => {

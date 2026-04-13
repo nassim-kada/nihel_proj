@@ -24,11 +24,13 @@ const BookingSchema: Schema = new Schema<IBookingDocument>({
   },
   patientName: { type: String, required: true },
   patientPhone: { type: String, required: true },
+  patientId: { type: String },
   appointmentDate: { type: String, required: true },
   appointmentTime: { type: String, required: true },
   patientDescription: { type: String, default: '' },
   fee: { type: String, required: true },
   fileLink: { type: String, default: '' },
+  isUrgent: { type: Boolean, default: false },
   status: { 
     type: String, 
     enum: ['pending', 'confirmed', 'cancelled', 'completed'], 

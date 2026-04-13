@@ -46,6 +46,22 @@ export async function POST(request: Request) {
 
         const newBooking = await Booking.create(body);
 
+        // If patientId is provided, try to fetch real name and phone from User collection
+        if (body.patientId) {
+            try {
+                const mongoose = require('mongoose');
+                const User = mongoose.models.User || mongoose.model('User');
+                const userDoc = await User.findById(body.patientId);
+                if (userDoc) {
+                    newBooking.patientName = userDoc.name || body.patientName;
+                    newBooking.patientPhone = userDoc.phone || body.patientPhone;
+                    await newBooking.save();
+                }
+            } catch (e) {
+                console.error("Error populating real user info", e);
+            }
+        }
+
         // Populate the doctor info in the response
         await newBooking.populate('doctorId', 'name specialty');
 

@@ -1,72 +1,155 @@
-// src/lib/models/Doctor.ts (CORRIGÉ pour inclure l'ID de slot)
-
 import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
-// --- Interfaces ---
-
 export interface ISlot {
-    // Mongoose va maintenant ajouter _id: Types.ObjectId
-    date: string;
-    times: string[];
+  date: string;
+  times: string[];
+}
+
+export interface IDiploma {
+  title: string;
+  institution: string;
+  year: string;
+  country: string;
+}
+
+export interface IConsultationDay {
+  day: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface IDoctor extends Document {
-    name: string;
-    specialty: Types.ObjectId;
-    clinic?: string;
-    experience?: number;
-    rating?: number;
-    patients?: number;
-    bio?: string;
-    fee?: string; 
-    phone: string;
-    email: string;
-    password?: string;
-    availableSlots: ISlot[]
+  // Legacy fields
+  name: string;
+  specialty: Types.ObjectId;
+  clinic?: string;
+  experience?: number;
+  rating?: number;
+  patients?: number;
+  maxPatients?: number;
+  bio?: string;
+  fee?: string;
+  phone: string;
+  email: string;
+  passwordHash?: string;
+  /** @deprecated use passwordHash */
+  password?: string;
+  location?: string;
+  availableSlots: ISlot[];
+
+  // New extended fields
+  type?: 'Médecin' | 'Clinique';
+  hospital?: string;
+  firstName?: string;
+  lastName?: string;
+  wilaya?: string;
+  commune?: string;
+  gender?: 'Homme' | 'Femme';
+  dateOfBirth?: string;
+
+  // Credentials
+  subSpecialties?: string[];
+  diplomas?: IDiploma[];
+  medicalOrderNumber?: string;
+  languages?: string[];
+  diplomaFileUrl?: string;
+
+  // Clinic
+  clinicName?: string;
+  clinicAddress?: string;
+  clinicWilaya?: string;
+  clinicCommune?: string;
+  clinicPhone?: string;
+  website?: string;
+  consultationSchedule?: IConsultationDay[];
+  clinicPhotoUrl?: string;
+  mapLocation?: {
+    lat: number;
+    lng: number;
+  };
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-// --- Schemas ---
+const SlotSchema = new Schema<ISlot>(
+  { date: { type: String, required: true }, times: { type: [String], required: true } }
+);
 
-// CORRECTION: Nous laissons Mongoose ajouter l'ID du sous-document par défaut.
-const SlotSchema: Schema = new Schema<ISlot>({
-    date: { type: String, required: true },
-    times: { type: [String], required: true }
-}, {
-    // Retrait de { _id: false }
+const DiplomaSchema = new Schema<IDiploma>({
+  title: String,
+  institution: String,
+  year: String,
+  country: String,
 });
 
-const DoctorSchema: Schema = new Schema<IDoctor>({
+const ConsultationDaySchema = new Schema<IConsultationDay>({
+  day: String,
+  startTime: String,
+  endTime: String,
+});
+
+const DoctorSchema = new Schema<IDoctor>(
+  {
     name: { type: String, required: true, maxlength: 60 },
     specialty: { type: Schema.Types.ObjectId, ref: 'Speciality', required: true },
-    clinic: { type: String, required: false },
-    experience: { type: Number, required: false, default: 0 },
-    rating: { type: Number, required: false, default: 0 },
-    patients: { type: Number, required: false, default: 0 },
-    bio: { type: String, required: false, maxlength: 500 },
-    fee: { type: String, required: false },
+    clinic: { type: String },
+    experience: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    patients: { type: Number, default: 0 },
+    maxPatients: { type: Number },
+    bio: { type: String, maxlength: 500 },
+    fee: { type: String },
     phone: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true, select: true },
+    email: { type: String, required: true, unique: true, lowercase: true },
+    password: { type: String, select: false },
+    passwordHash: { type: String, select: false },
+    location: { type: String },
+    availableSlots: { type: [SlotSchema], default: [] },
 
-    availableSlots: {
-        type: [SlotSchema],
-        default: [],
-    }
-}, {
+    type: { type: String, enum: ['Médecin', 'Clinique'] },
+    hospital: { type: String },
+    firstName: { type: String },
+    lastName: { type: String },
+    wilaya: { type: String },
+    commune: { type: String },
+    gender: { type: String, enum: ['Homme', 'Femme'] },
+    dateOfBirth: { type: String },
+
+    subSpecialties: { type: [String], default: [] },
+    diplomas: { type: [DiplomaSchema], default: [] },
+    medicalOrderNumber: { type: String },
+    languages: { type: [String], default: [] },
+    diplomaFileUrl: { type: String },
+
+    clinicName: { type: String },
+    clinicAddress: { type: String },
+    clinicWilaya: { type: String },
+    clinicCommune: { type: String },
+    clinicPhone: { type: String },
+    website: { type: String },
+    consultationSchedule: { type: [ConsultationDaySchema], default: [] },
+    clinicPhotoUrl: { type: String },
+    mapLocation: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+  },
+  {
     timestamps: true,
     toJSON: {
-        virtuals: true,
-        transform: (doc, ret) => {
-            delete ret.password;
-            return ret;
-        }
-    }
-});
+      virtuals: true,
+      transform: (_doc, ret) => {
+        delete ret.password;
+        delete ret.passwordHash;
+        return ret;
+      },
+    },
+  }
+);
 
-// --- Correction Mongoose pour Next.js ---
-const DoctorModel: Model<IDoctor> = (
-    mongoose.models.Doctor ||
-    mongoose.model<IDoctor>('Doctor', DoctorSchema)
-) as Model<IDoctor>;
+const DoctorModel: Model<IDoctor> =
+  (mongoose.models.Doctor as Model<IDoctor>) ||
+  mongoose.model<IDoctor>('Doctor', DoctorSchema);
 
 export default DoctorModel;
