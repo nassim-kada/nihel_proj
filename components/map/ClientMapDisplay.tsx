@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
 // Fix Leaflet's default icon path issues with Webpack/Next.js
