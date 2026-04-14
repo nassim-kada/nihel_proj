@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { dbConnect } from '@/lib/dbConnect';
 import DoctorModel from '@/lib/models/Doctor';
@@ -27,12 +26,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Un médecin avec cet email existe déjà' }, { status: 409 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
     const fullName = `${firstName}${lastName ? ' ' + lastName : ''}`;
 
     const doctor = await DoctorModel.create({
       name: fullName, firstName, lastName,
-      email: email.toLowerCase(), phone, specialty, passwordHash,
+      email: email.toLowerCase(), phone, specialty, passwordHash: password,
       type, hospital, dateOfBirth, wilaya, commune, gender,
       subSpecialties: subSpecialties || [],
       diplomas: diplomas || [],

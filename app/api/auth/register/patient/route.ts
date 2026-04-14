@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/lib/dbConnect';
 import PatientModel from '@/lib/models/Patient';
 
@@ -18,10 +17,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Un compte avec cet email existe déjà' }, { status: 409 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
     const patient = await PatientModel.create({
       firstName, lastName, email: email.toLowerCase(),
-      phone, dateOfBirth, wilaya, commune, gender, passwordHash,
+      phone, dateOfBirth, wilaya, commune, gender, passwordHash: password,
     });
 
     const name = `${patient.firstName}${patient.lastName ? ' ' + patient.lastName : ''}`;

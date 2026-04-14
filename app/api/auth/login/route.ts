@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
 import { dbConnect } from '@/lib/dbConnect';
 import DoctorModel from '@/lib/models/Doctor';
 import PatientModel from '@/lib/models/Patient';
@@ -22,17 +21,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
       }
 
-      let isValid = false;
-      if (doctor.passwordHash) {
-        isValid = await bcrypt.compare(password, doctor.passwordHash);
-      } else if (doctor.password) {
-        // Legacy plain-text — migrate on first login
-        isValid = doctor.password === password;
-        if (isValid) {
-          const hash = await bcrypt.hash(password, 10);
-          await DoctorModel.updateOne({ _id: doctor._id }, { $set: { passwordHash: hash }, $unset: { password: '' } });
-        }
-      }
+      // Plain-text comparison (MVP)
+      const storedPassword = doctor.passwordHash || doctor.password || '';
+      const isValid = storedPassword === password;
 
       if (!isValid) {
         return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
@@ -52,7 +43,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
       }
 
-      const isValid = await bcrypt.compare(password, patient.passwordHash);
+      // Plain-text comparison (MVP)
+      const isValid = patient.passwordHash === password;
       if (!isValid) {
         return NextResponse.json({ error: 'Email ou mot de passe incorrect' }, { status: 401 });
       }
