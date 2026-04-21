@@ -2,6 +2,7 @@
 import { FC, useState, useMemo } from "react";
 import { Search, X, Calendar, Loader2, ClipboardList } from "lucide-react";
 import AppointmentCard, { Appointment } from "./AppointmentCard";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   appointments: Appointment[];
@@ -22,6 +23,7 @@ const TABS: { key: Tab; label: string; activeColor: string; dot: string }[] = [
 ];
 
 const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onTypeChange, onDelete }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -52,7 +54,7 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      <span className="text-sm text-gray-400">Chargement des rendez-vous...</span>
+      <span className="text-sm text-gray-400">{t("appointments.loading_appointments", "Chargement des rendez-vous...")}</span>
     </div>
   );
 
@@ -65,8 +67,8 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
             <ClipboardList className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-gray-900 leading-tight">Rendez-vous</h2>
-            <p className="text-xs text-gray-400">{appointments.length} au total</p>
+            <h2 className="text-lg font-extrabold text-gray-900 leading-tight">{t("nav.appointments", "Rendez-vous")}</h2>
+            <p className="text-xs text-gray-400">{appointments.length} {t("appointments.total", "au total")}</p>
           </div>
         </div>
       </div>
@@ -86,7 +88,7 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
                   : "bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50"
               }`}
             >
-              {tab.label}
+              {t(`appointments.${tab.key}`, tab.label)}
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                 active ? "bg-white/25" : "bg-gray-100 text-gray-500"
               }`}>
@@ -104,7 +106,7 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par nom de patient..."
+            placeholder={t("appointments.search_patient", "Rechercher par nom de patient...")}
             className="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
           />
           {search && (
@@ -132,7 +134,7 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
       {/* Results count */}
       {(search || dateFilter) && (
         <p className="text-xs text-gray-400">
-          {filtered.length} résultat{filtered.length !== 1 ? "s" : ""} pour votre recherche
+          {filtered.length} {t("appointments.results", "résultats pour votre recherche")}
         </p>
       )}
 
@@ -142,9 +144,9 @@ const AppointmentList: FC<Props> = ({ appointments, loading, onStatusChange, onT
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
             <ClipboardList className="w-8 h-8 opacity-40" />
           </div>
-          <p className="font-semibold text-gray-500">Aucun rendez-vous</p>
+          <p className="font-semibold text-gray-500">{t("appointments.no_appointments", "Aucun rendez-vous trouvé")}</p>
           <p className="text-sm mt-1">
-            {search || dateFilter ? "Aucun résultat pour ces filtres" : `Aucun rendez-vous "${TABS.find(t => t.key === activeTab)?.label ?? ""}"`}
+            {search || dateFilter ? t("appointments.no_results_filters", "Aucun résultat pour ces filtres") : t("appointments.no_results_tab", "Aucun rendez-vous pour cette catégorie")}
           </p>
         </div>
       ) : (

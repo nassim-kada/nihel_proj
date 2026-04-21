@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Stethoscope, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, setUser, loading: authLoading } = useAuth();
   const [role, setRole] = useState<"doctor" | "patient">("patient");
   const [showPwd, setShowPwd] = useState(false);
@@ -33,7 +36,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email: form.email, password: form.password, role }),
       });
       const data = await res.json();
-      if (!res.ok) { setMsg({ type: "error", text: data.error || "Identifiants incorrects." }); return; }
+      if (!res.ok) { setMsg({ type: "error", text: data.error || t("auth.invalid_creds", "Identifiants incorrects.") }); return; }
 
       setUser(data.user);
 
@@ -44,10 +47,10 @@ export default function LoginPage() {
         localStorage.setItem("doctorEmail", data.user.email);
       }
 
-      setMsg({ type: "success", text: "Connexion réussie ! Redirection..." });
+      setMsg({ type: "success", text: t("auth.login_success", "Connexion réussie ! Redirection...") });
       setTimeout(() => router.push(role === "doctor" ? "/doctor-dashboard" : "/patient-dashboard"), 900);
     } catch {
-      setMsg({ type: "error", text: "Erreur de connexion au serveur." });
+      setMsg({ type: "error", text: t("auth.server_error", "Erreur de connexion au serveur.") });
     } finally {
       setLoading(false);
     }
@@ -55,14 +58,17 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-sky-50 flex items-center justify-center py-10 px-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md relative">
+        <div className="absolute -top-16 right-0">
+          <LanguageSwitcher />
+        </div>
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-600 to-sky-400 rounded-2xl shadow-lg mb-4">
             <Stethoscope className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900">Connexion</h1>
-          <p className="text-gray-500 mt-1 text-sm">Accédez à votre espace santé</p>
+          <h1 className="text-3xl font-extrabold text-gray-900">{t("auth.login", "Connexion")}</h1>
+          <p className="text-gray-500 mt-1 text-sm">{t("auth.access_space", "Accédez à votre espace santé")}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
@@ -71,7 +77,7 @@ export default function LoginPage() {
             {(["patient", "doctor"] as const).map(r => (
               <button key={r} type="button" onClick={() => { setRole(r); setMsg(null); }}
                 className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${role === r ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
-                {r === "patient" ? "👤 Patient" : "🩺 Médecin"}
+                {r === "patient" ? `👤 ${t("auth.patient", "Patient")}` : `🩺 ${t("auth.doctor", "Médecin")}`}
               </button>
             ))}
           </div>
@@ -85,7 +91,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Adresse E-mail</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("auth.email", "Adresse E-mail")}</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input required type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
@@ -95,7 +101,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Mot de passe</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("auth.password", "Mot de passe")}</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input required type={showPwd ? "text" : "password"} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
@@ -109,21 +115,21 @@ export default function LoginPage() {
 
             <button type="submit" disabled={loading}
               className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2 mt-2">
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Connexion...</> : "Se connecter"}
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("auth.logging_in", "Connexion...")}</> : t("auth.login_btn", "Se connecter")}
             </button>
           </form>
 
           <div className="mt-6 pt-5 border-t border-gray-100 space-y-2 text-center text-sm">
             <p className="text-gray-500">
-              Pas encore de compte ?{" "}
+              {t("auth.no_account", "Pas encore de compte ?")}{" "}
               <Link href={role === "doctor" ? "/signup/doctor" : "/signup/patient"} className="text-blue-600 font-semibold hover:underline">
-                S'inscrire comme {role === "doctor" ? "médecin" : "patient"}
+                {t("auth.register_as", "S'inscrire comme")} {role === "doctor" ? t("auth.doctor", "médecin") : t("auth.patient", "patient")}
               </Link>
             </p>
             <p className="text-xs text-gray-400">
-              {role === "patient" ? "Médecin ?" : "Patient ?"}{" "}
+              {role === "patient" ? `${t("auth.doctor", "Médecin")} ?` : `${t("auth.patient", "Patient")} ?`}{" "}
               <button type="button" onClick={() => setRole(role === "doctor" ? "patient" : "doctor")} className="text-gray-500 hover:text-blue-600 font-medium">
-                Basculer
+                {t("auth.switch", "Basculer")}
               </button>
             </p>
           </div>

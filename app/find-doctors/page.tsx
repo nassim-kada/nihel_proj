@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, Filter, X, Loader2 } from "lucide-react"
 import DoctorGrid from "@/components/doctor-grid"
+import { useTranslation } from "react-i18next"
 import { IDoctorData } from "@/types/doctor"
 // Assuming DoctorWithSpecialty might be defined here, but we can infer it
 // import { DoctorWithSpecialty } from "@/types/doctor" 
@@ -58,6 +59,7 @@ const getSpecialtyName = (specialty: any): string => {
 
 
 export default function FindDoctorsPage() {
+  const { t } = useTranslation()
   const [doctors, setDoctors] = useState<IDoctorData[]>([])
   const [availableSpecialities, setAvailableSpecialities] = useState<ISpecialityDocument[]>([])
   
@@ -76,11 +78,11 @@ export default function FindDoctorsPage() {
       setError(null)
       try {
         const response = await fetch('/api/doctors')
-        if (!response.ok) throw new Error("Échec de la récupération des docteurs.")
+        if (!response.ok) throw new Error(t("find_doctors.fetch_docs_fail", "Échec de la récupération des docteurs."))
         const data: IDoctorData[] = await response.json()
         setDoctors(data)
       } catch (err: any) {
-        setError("Impossible de charger les docteurs.")
+        setError(t("find_doctors.load_docs_fail", "Impossible de charger les docteurs."))
       } finally {
         setIsLoading(false)
       }
@@ -94,11 +96,11 @@ export default function FindDoctorsPage() {
       setIsSpecialitiesLoading(true)
       try {
         const response = await fetch('/api/specialities')
-        if (!response.ok) throw new Error("Échec de la récupération des spécialités.")
+        if (!response.ok) throw new Error(t("find_doctors.fetch_spec_fail", "Échec de la récupération des spécialités."))
         const data: ISpecialityDocument[] = await response.json()
         setAvailableSpecialities(data)
       } catch (err: any) {
-        setError(prev => prev || "Impossible de charger les options de filtre.")
+        setError(prev => prev || t("find_doctors.load_filters_fail", "Impossible de charger les options de filtre."))
       } finally {
         setIsSpecialitiesLoading(false)
       }
@@ -164,9 +166,9 @@ export default function FindDoctorsPage() {
         {/* Header */}
         <div className="space-y-2 md:space-y-4">
           <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
-            Trouver Votre Médecin
+            {t("find_doctors.title", "Trouver Votre Médecin")}
           </h1>
-          <p className="text-sm md:text-lg text-gray-600">Parcourez notre réseau de professionnels de la santé qualifiés</p>
+          <p className="text-sm md:text-lg text-gray-600">{t("find_doctors.desc", "Parcourez notre réseau de professionnels de la santé qualifiés")}</p>
         </div>
 
         {/* Search Bar */}
@@ -174,7 +176,7 @@ export default function FindDoctorsPage() {
           <div className="relative">
             <Search className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
             <Input
-              placeholder="Rechercher par nom, spécialité ou clinique..."
+              placeholder={t("find_doctors.search_placeholder", "Rechercher par nom, spécialité ou clinique...")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 md:pl-12 py-4 md:py-6 text-sm md:text-base border-2 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
@@ -189,7 +191,7 @@ export default function FindDoctorsPage() {
             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-sky-500 text-white py-3 rounded-lg font-semibold shadow-lg"
           >
             <Filter className="w-4 h-4" />
-            Filtres
+            {t("find_doctors.filters", "Filtres")}
             {activeFiltersCount > 0 && (
               <span className="bg-white text-blue-600 px-2 py-0.5 rounded-full text-xs font-bold">
                 {activeFiltersCount}
@@ -207,7 +209,7 @@ export default function FindDoctorsPage() {
           }`}>
             {/* Mobile Filter Header */}
             <div className="lg:hidden flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Filtres</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t("find_doctors.filters", "Filtres")}</h2>
               <button
                 onClick={() => setShowFilters(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg"
@@ -220,7 +222,7 @@ export default function FindDoctorsPage() {
             <Card className="p-4 md:p-6 bg-white/80 backdrop-blur-sm border-2 border-blue-100 shadow-lg">
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <Filter className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                <h3 className="font-bold text-base md:text-lg text-gray-900">Spécialité</h3>
+                <h3 className="font-bold text-base md:text-lg text-gray-900">{t("find_doctors.specialty", "Spécialité")}</h3>
               </div>
               <div className="space-y-1.5 md:space-y-2">
                 <button
@@ -234,7 +236,7 @@ export default function FindDoctorsPage() {
                       : "bg-blue-50 text-gray-700 hover:bg-blue-100"
                   }`}
                 >
-                  Toutes les Spécialités
+                  {t("find_doctors.all_specialties", "Toutes les Spécialités")}
                 </button>
                 
                 {isSpecialitiesLoading ? (
@@ -262,7 +264,7 @@ export default function FindDoctorsPage() {
                             : "bg-blue-50 text-gray-700 hover:bg-blue-100"
                         }`}
                       >
-                        {speciality.name}
+                        {t(`specialties.${speciality.name}`, { defaultValue: speciality.name }) as string}
                       </button>
                     )
                   })
@@ -276,7 +278,7 @@ export default function FindDoctorsPage() {
                 onClick={() => setShowFilters(false)}
                 className="w-full bg-gradient-to-r from-blue-500 to-sky-500 text-white py-3 rounded-lg font-semibold shadow-lg"
               >
-                Appliquer les Filtres
+                {t("find_doctors.apply_filters", "Appliquer les Filtres")}
               </button>
             </div>
           </div>
@@ -286,13 +288,13 @@ export default function FindDoctorsPage() {
             {isOverallLoading && (
               <div className="p-8 md:p-12 text-center">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
-                <p className="text-lg text-gray-600">Chargement des données...</p>
+                <p className="text-lg text-gray-600">{t("find_doctors.loading_data", "Chargement des données...")}</p>
               </div>
             )}
 
             {error && !isOverallLoading && (
               <Card className="p-8 md:p-12 text-center bg-red-50/80 backdrop-blur-sm border-2 border-red-200">
-                <h3 className="text-lg md:text-xl font-semibold text-red-700">Erreur de Connexion</h3>
+                <h3 className="text-lg md:text-xl font-semibold text-red-700">{t("find_doctors.conn_error", "Erreur de Connexion")}</h3>
                 <p className="text-sm md:text-base text-gray-600">{error}</p>
               </Card>
             )}
@@ -309,8 +311,8 @@ export default function FindDoctorsPage() {
                   <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
                     <Search className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
                   </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-900">Aucun médecin trouvé</h3>
-                  <p className="text-sm md:text-base text-gray-600">Essayez d'ajuster votre recherche ou vos filtres</p>
+                  <h3 className="text-lg md:text-xl font-semibold text-gray-900">{t("find_doctors.no_doctor_found", "Aucun médecin trouvé")}</h3>
+                  <p className="text-sm md:text-base text-gray-600">{t("find_doctors.adjust_search", "Essayez d'ajuster votre recherche ou vos filtres")}</p>
                 </div>
               </Card>
             )}

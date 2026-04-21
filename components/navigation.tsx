@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Stethoscope, Menu, X, User as UserIcon, LogOut } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
+import { useTranslation } from "react-i18next"
 
 export default function Navigation() {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, logout } = useAuth()
+  const { t } = useTranslation()
 
   const isActive = (path: string) => pathname === path
   const isDashboardActive = isActive("/doctor-dashboard") || isActive("/patient-dashboard")
@@ -44,7 +47,7 @@ export default function Navigation() {
                   : "text-gray-600 hover:text-blue-600"
               }`}
             >
-              Trouver un Médecin
+              {t("nav.find_doctor", "Trouver un Médecin")}
               {isActive("/find-doctors") && (
                 <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
               )}
@@ -60,7 +63,7 @@ export default function Navigation() {
                   }`}
                 >
                   <UserIcon className="w-4 h-4" />
-                  Mon Espace
+                  {t("nav.my_space", "Mon Espace")}
                   {isDashboardActive && (
                     <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
                   )}
@@ -70,7 +73,7 @@ export default function Navigation() {
                   className="text-sm font-semibold text-red-500 hover:text-red-600 transition-all flex items-center gap-1.5"
                 >
                   <LogOut className="w-4 h-4" />
-                  Déconnexion
+                  {t("nav.logout", "Déconnexion")}
                 </button>
               </>
             ) : (
@@ -82,7 +85,7 @@ export default function Navigation() {
                     : "text-gray-600 hover:text-blue-600"
                 }`}
               >
-                Connexion
+                {t("nav.login", "Connexion")}
                 {isActive("/login") && (
                   <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 to-sky-500 rounded-full" />
                 )}
@@ -94,9 +97,10 @@ export default function Navigation() {
                 size="sm"
                 className="border-2 border-blue-200 text-blue-600 hover:bg-blue-700 hover:border-blue-300 font-semibold"
               >
-                Accueil
+                {t("nav.home", "Accueil")}
               </Button>
             </Link>
+            <LanguageSwitcher />
           </div>
 
           {/* Mobile Menu Button */}
@@ -120,7 +124,7 @@ export default function Navigation() {
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Trouver un Médecin
+              {t("nav.find_doctor", "Trouver un Médecin")}
             </Link>
             {user ? (
               <>
@@ -134,7 +138,7 @@ export default function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <UserIcon className="w-4 h-4" />
-                  Mon Espace
+                  {t("nav.my_space", "Mon Espace")}
                 </Link>
                 <button
                   onClick={() => {
@@ -144,7 +148,7 @@ export default function Navigation() {
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-all w-full text-left"
                 >
                   <LogOut className="w-4 h-4" />
-                  Déconnexion
+                  {t("nav.logout", "Déconnexion")}
                 </button>
               </>
             ) : (
@@ -157,7 +161,7 @@ export default function Navigation() {
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Connexion
+                {t("nav.login", "Connexion")}
               </Link>
             )}
             <Link href="/" onClick={() => setMobileMenuOpen(false)}>
@@ -169,6 +173,9 @@ export default function Navigation() {
                 Accueil
               </Button>
             </Link>
+            <div className="pt-2 flex justify-center">
+              <LanguageSwitcher />
+            </div>
           </div>
         )}
       </div>

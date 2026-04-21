@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { User, Mail, Phone, Calendar, MapPin, Camera, Save, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { WILAYAS, getCommunesByWilaya } from "@/data/algeria-locations";
+import { useTranslation } from "react-i18next";
 
 interface Patient {
   _id: string;
@@ -20,6 +21,7 @@ interface Patient {
 interface Props { patientId: string }
 
 export default function PatientProfile({ patientId }: Props) {
+  const { t } = useTranslation();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -64,9 +66,9 @@ export default function PatientProfile({ patientId }: Props) {
           profilePhotoUrl: patient.profilePhotoUrl,
         }),
       });
-      if (res.ok) setMessage({ type: "success", text: "Profil mis à jour avec succès !" });
-      else setMessage({ type: "error", text: "Erreur lors de la mise à jour." });
-    } catch { setMessage({ type: "error", text: "Erreur serveur." }); }
+      if (res.ok) setMessage({ type: "success", text: t("profile.success", "Profil mis à jour avec succès !") });
+      else setMessage({ type: "error", text: t("profile.error", "Erreur lors de la mise à jour.") });
+    } catch { setMessage({ type: "error", text: t("profile.server_error", "Erreur serveur.") }); }
     finally { setSaving(false); }
   };
 
@@ -77,7 +79,7 @@ export default function PatientProfile({ patientId }: Props) {
   );
 
   if (!patient) return (
-    <div className="text-center text-gray-400 py-16">Impossible de charger le profil.</div>
+    <div className="text-center text-gray-400 py-16">{t("profile.load_error", "Impossible de charger le profil.")}</div>
   );
 
   const set = (k: keyof Patient, v: string) => setPatient(p => p ? { ...p, [k]: v } : p);
@@ -85,8 +87,8 @@ export default function PatientProfile({ patientId }: Props) {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-xl font-bold text-gray-800">Mon Profil</h2>
-        <p className="text-sm text-gray-500">Gérez vos informations personnelles</p>
+        <h2 className="text-xl font-bold text-gray-800">{t("profile.title", "Mon Profil")}</h2>
+        <p className="text-sm text-gray-500">{t("profile.desc", "Gérez vos informations personnelles")}</p>
       </div>
 
       {message && (
@@ -115,7 +117,7 @@ export default function PatientProfile({ patientId }: Props) {
         <div>
           <p className="font-bold text-gray-800 text-lg">{patient.firstName} {patient.lastName}</p>
           <p className="text-sm text-gray-500">{patient.email}</p>
-          <p className="text-xs text-blue-600 font-medium mt-0.5">Patient</p>
+          <p className="text-xs text-blue-600 font-medium mt-0.5">{t("profile.patient_label", "Patient")}</p>
         </div>
       </div>
 
@@ -123,7 +125,7 @@ export default function PatientProfile({ patientId }: Props) {
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Prénom</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.first_name", "Prénom")}</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input value={patient.firstName} onChange={e => set("firstName", e.target.value)}
@@ -131,14 +133,14 @@ export default function PatientProfile({ patientId }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nom de famille</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.last_name", "Nom de famille")}</label>
             <input value={patient.lastName || ""} onChange={e => set("lastName", e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition" />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">E-mail</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.email", "E-mail")}</label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input value={patient.email} disabled className="w-full pl-9 pr-3 py-2.5 border border-gray-100 bg-gray-50 rounded-lg text-sm text-gray-500 cursor-not-allowed" />
@@ -146,7 +148,7 @@ export default function PatientProfile({ patientId }: Props) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Numéro de téléphone</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.phone", "Numéro de téléphone")}</label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="tel" value={patient.phone} onChange={e => set("phone", e.target.value)}
@@ -156,7 +158,7 @@ export default function PatientProfile({ patientId }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date de naissance</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.dob", "Date de naissance")}</label>
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input type="date" value={patient.dateOfBirth} onChange={e => set("dateOfBirth", e.target.value)}
@@ -164,12 +166,15 @@ export default function PatientProfile({ patientId }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Genre</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.gender", "Genre")}</label>
             <div className="flex gap-2">
-              {["Homme", "Femme"].map(g => (
-                <label key={g} className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border cursor-pointer text-sm font-medium transition-all ${patient.gender === g ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-blue-200"}`}>
-                  <input type="radio" name="pgender" value={g} checked={patient.gender === g} onChange={() => set("gender", g)} className="sr-only" />
-                  {g}
+              {[
+                { val: "Homme", label: t("profile.male", "Homme") },
+                { val: "Femme", label: t("profile.female", "Femme") }
+              ].map(g => (
+                <label key={g.val} className={`flex-1 flex items-center justify-center py-2.5 rounded-lg border cursor-pointer text-sm font-medium transition-all ${patient.gender === g.val ? "border-blue-500 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-600 hover:border-blue-200"}`}>
+                  <input type="radio" name="pgender" value={g.val} checked={patient.gender === g.val} onChange={() => set("gender", g.val)} className="sr-only" />
+                  {g.label}
                 </label>
               ))}
             </div>
@@ -178,7 +183,7 @@ export default function PatientProfile({ patientId }: Props) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Wilaya</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.wilaya", "Wilaya")}</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <select value={patient.wilaya} onChange={e => set("wilaya", e.target.value)}
@@ -188,10 +193,10 @@ export default function PatientProfile({ patientId }: Props) {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Commune</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t("profile.commune", "Commune")}</label>
             <select value={patient.commune || ""} onChange={e => set("commune", e.target.value)} disabled={!communes.length}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 appearance-none bg-white disabled:opacity-50 transition">
-              <option value="">Sélectionner</option>
+              <option value="">{t("profile.select", "Sélectionner")}</option>
               {communes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
@@ -199,7 +204,7 @@ export default function PatientProfile({ patientId }: Props) {
 
         <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-500 hover:from-blue-600 hover:to-blue-600 text-white rounded-lg font-semibold text-sm shadow-md transition-all disabled:opacity-60">
-          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Sauvegarde...</> : <><Save className="w-4 h-4" /> Enregistrer les modifications</>}
+          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("profile.saving", "Sauvegarde...")}</> : <><Save className="w-4 h-4" /> {t("profile.save_changes", "Enregistrer les modifications")}</>}
         </button>
       </div>
     </div>

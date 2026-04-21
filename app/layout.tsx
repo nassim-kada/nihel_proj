@@ -6,6 +6,7 @@ import "./globals.css"
 import Navigation from "@/components/navigation"
 import Chatbot from "@/components/chatbot"
 import { AuthProvider } from "@/contexts/AuthContext"
+import I18nProvider from "@/components/I18nProvider"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -32,12 +33,14 @@ export default function RootLayout({
         />
       </head>
       <body className={`font-sans antialiased`} suppressHydrationWarning>
-        <AuthProvider>
-          <Navigation />
-          {children}
-          <Analytics />
-          <Chatbot />
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <Navigation />
+            {children}
+            <Analytics />
+            <Chatbot />
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   )

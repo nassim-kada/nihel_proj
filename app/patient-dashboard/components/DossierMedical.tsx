@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FileText, Upload, Download, Trash2, Loader2, AlertCircle, FolderOpen, File } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface MedicalFile {
   _id: string;
@@ -14,6 +15,7 @@ interface MedicalFile {
 interface Props { patientId: string }
 
 export default function DossierMedical({ patientId }: Props) {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<MedicalFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -30,7 +32,7 @@ export default function DossierMedical({ patientId }: Props) {
   }, [patientId]);
 
   const handleUpload = async () => {
-    if (!pendingFile || !fileName.trim()) { setError("Veuillez choisir un fichier et lui donner un nom."); return; }
+    if (!pendingFile || !fileName.trim()) { setError(t("dossier.choose_file_error", "Veuillez choisir un fichier et lui donner un nom.")); return; }
     setUploading(true);
     setError(null);
     try {
@@ -39,7 +41,7 @@ export default function DossierMedical({ patientId }: Props) {
       fd.append("file", pendingFile);
       const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
       const uploadData = await uploadRes.json();
-      if (!uploadRes.ok || !uploadData.url) throw new Error("Erreur d'upload.");
+      if (!uploadRes.ok || !uploadData.url) throw new Error(t("dossier.upload_error", "Erreur d'upload."));
 
       // 2. Save record to patient dossier
       const saveRes = await fetch(`/api/patients/${patientId}/medical-files`, {
@@ -48,13 +50,13 @@ export default function DossierMedical({ patientId }: Props) {
         body: JSON.stringify({ name: fileName.trim(), url: uploadData.url, fileType: pendingFile.type }),
       });
       const saved = await saveRes.json();
-      if (!saveRes.ok) throw new Error(saved.error || "Erreur lors de l'enregistrement.");
+      if (!saveRes.ok) throw new Error(saved.error || t("dossier.save_error", "Erreur lors de l'enregistrement."));
 
       setFiles(prev => [...prev, saved]);
       setFileName("");
       setPendingFile(null);
     } catch (err: any) {
-      setError(err.message || "Erreur.");
+      setError(err.message || t("dossier.error", "Erreur."));
     } finally {
       setUploading(false);
     }
@@ -75,13 +77,13 @@ export default function DossierMedical({ patientId }: Props) {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h2 className="text-xl font-bold text-gray-800">Dossier Médical</h2>
-        <p className="text-sm text-gray-500">Stockez et gérez vos documents médicaux</p>
+        <h2 className="text-xl font-bold text-gray-800">{t("dossier.title", "Dossier Médical")}</h2>
+        <p className="text-sm text-gray-500">{t("dossier.desc", "Stockez et gérez vos documents médicaux")}</p>
       </div>
 
       {/* Upload panel */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-        <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2"><Upload className="w-4 h-4 text-blue-500" /> Ajouter un document</h3>
+        <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2"><Upload className="w-4 h-4 text-blue-500" /> {t("dossier.add_doc", "Ajouter un document")}</h3>
 
         {error && (
           <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
@@ -90,20 +92,20 @@ export default function DossierMedical({ patientId }: Props) {
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Nom / Label du fichier</label>
-          <input value={fileName} onChange={e => setFileName(e.target.value)} placeholder="ex: Résultats analyse sanguine - Mars 2025"
+          <label className="block text-xs font-semibold text-gray-600 mb-1">{t("dossier.file_name_label", "Nom / Label du fichier")}</label>
+          <input value={fileName} onChange={e => setFileName(e.target.value)} placeholder={t("dossier.file_name_ph", "ex: Résultats analyse sanguine - Mars 2025")}
             className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition" />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Fichier (PDF ou image)</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">{t("dossier.file_label", "Fichier (PDF ou image)")}</label>
           <label className={`flex items-center gap-3 px-4 py-4 border-2 border-dashed rounded-lg cursor-pointer transition-all ${pendingFile ? "border-sky-400 bg-blue-50" : "border-gray-300 hover:border-sky-400 hover:bg-blue-50"}`}>
             <Upload className="w-5 h-5 text-gray-400 shrink-0" />
             <div className="text-sm">
               {pendingFile ? (
                 <><span className="font-medium text-blue-700">{pendingFile.name}</span><span className="text-gray-400"> ({(pendingFile.size / 1024).toFixed(0)} Ko)</span></>
               ) : (
-                <span className="text-gray-500">Cliquez ou glissez un fichier ici</span>
+                <span className="text-gray-500">{t("dossier.click_drop", "Cliquez ou glissez un fichier ici")}</span>
               )}
             </div>
             <input type="file" accept=".pdf,image/*" className="sr-only"
@@ -113,14 +115,14 @@ export default function DossierMedical({ patientId }: Props) {
 
         <button onClick={handleUpload} disabled={uploading || !pendingFile}
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-500 hover:from-blue-600 hover:to-blue-600 text-white rounded-lg font-semibold text-sm shadow-md transition-all disabled:opacity-50">
-          {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Upload en cours...</> : <><Upload className="w-4 h-4" /> Ajouter au dossier</>}
+          {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> {t("dossier.uploading", "Upload en cours...")}</> : <><Upload className="w-4 h-4" /> {t("dossier.add_to_dossier", "Ajouter au dossier")}</>}
         </button>
       </div>
 
       {/* File list */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h3 className="font-semibold text-gray-700 text-sm flex items-center gap-2 mb-4">
-          <FolderOpen className="w-4 h-4 text-blue-500" /> Mes documents ({files.length})
+          <FolderOpen className="w-4 h-4 text-blue-500" /> {t("dossier.my_docs", "Mes documents")} ({files.length})
         </h3>
 
         {loading ? (
@@ -128,7 +130,7 @@ export default function DossierMedical({ patientId }: Props) {
         ) : files.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
             <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Aucun document ajouté pour le moment</p>
+            <p className="text-sm">{t("dossier.no_docs", "Aucun document ajouté pour le moment")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -143,11 +145,11 @@ export default function DossierMedical({ patientId }: Props) {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <a href={f.url} target="_blank" rel="noopener noreferrer"
-                    className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition" title="Télécharger">
+                    className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg transition" title={t("dossier.download", "Télécharger")}>
                     <Download className="w-4 h-4" />
                   </a>
                   <button onClick={() => handleDelete(f._id)} disabled={deletingId === f._id}
-                    className="p-2 text-red-400 hover:bg-red-100 rounded-lg transition" title="Supprimer">
+                    className="p-2 text-red-400 hover:bg-red-100 rounded-lg transition" title={t("dossier.delete", "Supprimer")}>
                     {deletingId === f._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>

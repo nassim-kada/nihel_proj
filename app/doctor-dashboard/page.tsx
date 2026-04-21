@@ -13,6 +13,8 @@ import UrgentAlert from "./components/UrgentAlert";
 import UrgentToast from "./components/UrgentToast";
 import { Appointment } from "./components/AppointmentCard";
 import SharedFilesView from "@/components/sharedfiles";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 // ── Lazy-imported heavy sub-views (kept from original) ────────────────────────
@@ -33,6 +35,8 @@ const NAV_ITEMS = [
 
 export default function DoctorDashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const { user, loading: authLoading, logout } = useAuth();
   const [view, setView] = useState("appointments");
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [doctor, setDoctor] = useState<{ _id: string; name: string; specialty?: any; fee?: string; experience?: number; patients?: number; maxPatients?: number; location?: string; clinic?: string } | null>(null);
@@ -45,9 +49,14 @@ export default function DoctorDashboard() {
 
   // ── Auth / load doctor ────────────────────────────────────────────────────
   useEffect(() => {
-    const id = localStorage.getItem("doctorId");
-    const name = localStorage.getItem("doctorName");
-    if (!id || !name) { router.push("/"); return; }
+    if (authLoading) return;
+    if (!user || user.role !== "doctor") {
+      router.push("/");
+      return;
+    }
+    
+    const id = user.id;
+    const name = user.name;
     setDoctorId(id);
 
     Promise.all([
@@ -57,7 +66,7 @@ export default function DoctorDashboard() {
       setDoctor(doc);
       setSpecialties(specs);
     }).finally(() => setLoading(false));
-  }, [router]);
+  }, [user, authLoading, router]);
 
   // ── Load appointments ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -148,7 +157,7 @@ export default function DoctorDashboard() {
   }, [doctor, specialties]);
 
   const handleLogout = () => {
-    ["doctorId", "doctorName", "doctorEmail", "doctorSpecialty", "mc_user"].forEach(k => localStorage.removeItem(k));
+    logout();
     router.push("/");
   };
 
@@ -162,7 +171,7 @@ export default function DoctorDashboard() {
           </div>
           <div className="flex items-center gap-2 text-gray-500 justify-center">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Chargement...</span>
+            <span className="text-sm">{t("appointments.loading", "Chargement...")}</span>
           </div>
         </div>
       </main>
@@ -197,15 +206,15 @@ export default function DoctorDashboard() {
         {/* Top bar */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-extrabold text-gray-900">Tableau de Bord Médical</h1>
-            {doctor && <p className="text-sm text-gray-500">Dr. {doctor.name} · {specialtyName}</p>}
+            <h1 className="text-xl font-extrabold text-gray-900">{t("doctor_dashboard.title", "Tableau de Bord Médical")}</h1>
+            {doctor && <p className="text-sm text-gray-500">{t("doctor_dashboard.dr", "Dr.") as string} {doctor.name} · {t(`specialties.${specialtyName}`, { defaultValue: specialtyName }) as string}</p>}
           </div>
           <div className="flex items-center gap-3">
             {doctor?.fee && (
               <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">{doctor.fee} DA</span>
             )}
             {(doctor?.experience ?? 0) > 0 && (
-              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">🏆 {doctor?.experience} ans</span>
+              <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold">🏆 {doctor?.experience} {t("doctor_dashboard.years", "ans")}</span>
             )}
           </div>
         </header>

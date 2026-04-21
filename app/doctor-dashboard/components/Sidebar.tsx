@@ -2,6 +2,9 @@
 
 import { FC, useState } from "react";
 import { LucideIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
+import Link from "next/link";
 
 interface NavItem {
   id: string;
@@ -19,6 +22,7 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ navItems, activeView, onNav, doctorName, doctorSpecialty, onLogout }) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const LogoutIcon = navItems[0]?.icon; // placeholder
 
@@ -32,14 +36,14 @@ const Sidebar: FC<SidebarProps> = ({ navItems, activeView, onNav, doctorName, do
       </button>
 
       {/* Brand */}
-      <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-gray-100 overflow-hidden`}>
+      <Link href="/" className={`flex items-center gap-2.5 px-4 py-5 border-b border-gray-100 overflow-hidden hover:bg-gray-50 transition-colors`}>
         <div className="w-9 h-9 shrink-0 bg-gradient-to-br from-blue-600 to-sky-400 rounded-xl flex items-center justify-center shadow-md">
           <span className="text-white font-black text-sm">M</span>
         </div>
         {!collapsed && (
           <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-sky-500 bg-clip-text text-transparent whitespace-nowrap">Medcal</span>
         )}
-      </div>
+      </Link>
 
       {/* Doctor info */}
       {!collapsed && (
@@ -50,7 +54,7 @@ const Sidebar: FC<SidebarProps> = ({ navItems, activeView, onNav, doctorName, do
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">Dr. {doctorName}</p>
-              <p className="text-xs text-blue-600 font-medium truncate">{doctorSpecialty}</p>
+              <p className="text-xs text-blue-600 font-medium truncate">{t(`specialties.${doctorSpecialty}`, { defaultValue: doctorSpecialty }) as string}</p>
             </div>
           </div>
         </div>
@@ -65,20 +69,25 @@ const Sidebar: FC<SidebarProps> = ({ navItems, activeView, onNav, doctorName, do
             <button key={item.id} onClick={() => onNav(item.id)} title={collapsed ? item.label : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? "bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-md" : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"}`}>
               <Icon className="w-4 h-4 shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{t(`nav.${item.id}`, item.label)}</span>}
             </button>
           );
         })}
       </nav>
 
-      {/* Logout — always pinned at bottom */}
-      <div className="shrink-0 p-2 border-t border-gray-100 bg-white">
+      {/* Logout & Lang — always pinned at bottom */}
+      <div className="shrink-0 p-2 border-t border-gray-100 bg-white flex flex-col gap-2">
+        {!collapsed && (
+          <div className="flex justify-center w-full pb-2 border-b border-gray-50">
+            <LanguageSwitcher />
+          </div>
+        )}
         <button onClick={onLogout}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 transition-all`}>
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {!collapsed && <span>Déconnexion</span>}
+          {!collapsed && <span>{t("nav.logout", "Déconnexion")}</span>}
         </button>
       </div>
     </aside>

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Star, MapPin, Clock, Users } from "lucide-react"
 import type { IDoctorData } from "@/types/doctor" 
 import type { ISpecialityDocument } from "@/types/speciality"
+import { useTranslation } from "react-i18next"
 
 // Type for doctor with populated specialty
 type DoctorWithSpecialty = Omit<IDoctorData, 'specialty'> & {
@@ -11,19 +12,20 @@ type DoctorWithSpecialty = Omit<IDoctorData, 'specialty'> & {
 }
 
 // Utility function to safely get specialty name
-const getSpecialtyName = (specialty: ISpecialityDocument | string | any): string => {
+const getSpecialtyName = (specialty: ISpecialityDocument | string | any, t: any): string => {
     // If specialty is a populated object with name property
     if (specialty && typeof specialty === 'object' && 'name' in specialty) {
-        return specialty.name;
+        return t(`specialties.${specialty.name}`, { defaultValue: specialty.name }) as string;
     }
     // If it's just an ID string (fallback)
     if (typeof specialty === 'string') {
-        return 'Spécialité non définie';
+        return t("find_doctors.undefined_specialty", "Spécialité non définie");
     }
-    return 'Non spécifiée';
+    return t("find_doctors.unspecified", "Non spécifiée");
 };
 
 export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[] }) {
+  const { t } = useTranslation();
   if (doctors.length === 0) {
     return (
       <div className="grid place-items-center min-h-96">
@@ -31,8 +33,8 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
           <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
             <Users className="w-8 h-8 md:w-10 md:h-10 text-blue-400" />
           </div>
-          <p className="text-lg md:text-xl font-semibold text-gray-900">Aucun médecin trouvé</p>
-          <p className="text-sm md:text-base text-gray-600">Essayez d'ajuster votre recherche ou vos filtres</p>
+          <p className="text-lg md:text-xl font-semibold text-gray-900">{t("find_doctors.no_doctor_found", "Aucun médecin trouvé")}</p>
+          <p className="text-sm md:text-base text-gray-600">{t("find_doctors.adjust_search", "Essayez d'ajuster votre recherche ou vos filtres")}</p>
         </div>
       </div>
     )
@@ -53,7 +55,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
               </h3>
               {/* Display specialty name using the utility function */}
               <p className="text-sm md:text-base text-blue-600 font-semibold truncate">
-                {getSpecialtyName(doctor.specialty)}
+                {getSpecialtyName(doctor.specialty, t)}
               </p>
             </div>
             <div className="flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-400 px-2 md:px-3 py-1 md:py-1.5 rounded-lg shadow-md flex-shrink-0">
@@ -74,13 +76,13 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
               <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Clock className="w-3 h-3 md:w-4 md:h-4 text-blue-600" />
               </div>
-              <span className="font-medium">{doctor.experience} ans d'expérience</span>
+              <span className="font-medium">{doctor.experience} {t("find_doctors.years_experience", "ans d'expérience")}</span>
             </div>
             <div className="flex items-center gap-2 md:gap-3 text-gray-700">
               <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
                 <Users className="w-3 h-3 md:w-4 md:h-4 text-blue-600" />
               </div>
-              <span className="font-medium">{doctor.patients} patients</span>
+              <span className="font-medium">{doctor.patients} {t("find_doctors.patients", "patients")}</span>
             </div>
           </div>
 
@@ -92,7 +94,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
           {/* Footer with Fee and Action */}
           <div className="flex items-center justify-between pt-3 md:pt-4 border-t-2 border-blue-100 gap-3">
             <div className="space-y-0.5 md:space-y-1">
-              <p className="text-xs text-gray-500 font-medium">Frais de Consultation</p>
+              <p className="text-xs text-gray-500 font-medium">{t("find_doctors.consultation_fee", "Frais de Consultation")}</p>
               <p className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-sky-600 bg-clip-text text-transparent">
                 {doctor.fee} DA
               </p>
@@ -101,7 +103,7 @@ export default function DoctorGrid({ doctors }: { doctors: DoctorWithSpecialty[]
               <Button 
                 className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white shadow-lg hover:shadow-xl transition-all px-4 py-4 md:px-6 md:py-5 font-semibold text-sm md:text-base"
               >
-                Réserver Maintenant
+                {t("find_doctors.book_now", "Réserver Maintenant")}
               </Button>
             </Link>
           </div>
